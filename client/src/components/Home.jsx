@@ -213,6 +213,15 @@ export default function Home({
             📲 {t('installApp')}
           </button>
         )}
+        <a
+          href="/download/apk"
+          className="btn btn-ghost btn-small apk-link-btn"
+          target="_blank"
+          rel="noopener noreferrer"
+          title={t('apkNote')}
+        >
+          🤖 {t('downloadApk')}
+        </a>
       </div>
       <p className="muted center" style={{ fontSize: '12px' }}>{t('inviteHint')}</p>
 

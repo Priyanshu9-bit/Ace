@@ -2636,4 +2636,94 @@ h1, h2, h3, h4 {
   }
 }
 
+/* ---------- APK Download Button & Modal Section ---------- */
+.apk-link-btn {
+  color: #55efc4 !important;
+  border-color: rgba(85, 239, 196, 0.4) !important;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.apk-link-btn:hover {
+  background: rgba(85, 239, 196, 0.15) !important;
+  border-color: #55efc4 !important;
+  box-shadow: 0 0 12px rgba(85, 239, 196, 0.35);
+}
+
+.apk-modal-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 12px 0 6px 0;
+}
+
+.apk-modal-divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+}
+.apk-modal-divider::before,
+.apk-modal-divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+.apk-modal-divider span {
+  padding: 0 10px;
+}
+
+.apk-modal-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(85, 239, 196, 0.4);
+  border-radius: 14px;
+  text-decoration: none;
+  color: #fff;
+  transition: all 0.2s ease;
+}
+.apk-modal-btn:hover {
+  background: rgba(85, 239, 196, 0.12);
+  border-color: #55efc4;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(85, 239, 196, 0.25);
+}
+
+.apk-modal-icon {
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.apk-modal-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  text-align: left;
+}
+
+.apk-modal-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #55efc4;
+}
+
+.apk-modal-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.apk-modal-arrow {
+  font-size: 18px;
+  color: #55efc4;
+  font-weight: bold;
+}
+
+
 

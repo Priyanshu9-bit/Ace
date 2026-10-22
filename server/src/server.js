@@ -21,6 +21,16 @@ function createGameServer(config) {
 
   app.get('/healthz', (req, res) => res.json({ ok: true }));
 
+  const GITHUB_RELEASES_URL = 'https://github.com/Priyanshu9-bit/Ace/releases';
+  const localApkPath = path.join(CLIENT_DIST, 'downloads', 'gadhaa.apk');
+
+  app.get(['/download/apk', '/download/gadhaa.apk'], (req, res) => {
+    if (fs.existsSync(localApkPath)) {
+      return res.download(localApkPath, 'gadhaa.apk');
+    }
+    return res.redirect(GITHUB_RELEASES_URL);
+  });
+
   const indexHtml = path.join(CLIENT_DIST, 'index.html');
   if (config.serveClient && fs.existsSync(indexHtml)) {
     app.use(express.static(CLIENT_DIST, { maxAge: '1h', index: false }));

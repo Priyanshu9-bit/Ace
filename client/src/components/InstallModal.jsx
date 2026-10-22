@@ -49,6 +49,26 @@ export default function InstallModal({ t, onClose, onInstall, canPrompt, isIOS, 
           </div>
         )}
 
+        <div className="apk-modal-section">
+          <div className="apk-modal-divider">
+            <span>OR</span>
+          </div>
+          <a
+            href="/download/apk"
+            className="apk-modal-btn"
+            target="_blank"
+            rel="noopener noreferrer"
+            title={t('apkNote')}
+          >
+            <span className="apk-modal-icon" aria-hidden="true">🤖</span>
+            <div className="apk-modal-text">
+              <span className="apk-modal-title">{t('downloadApk')}</span>
+              <span className="apk-modal-sub">{t('downloadApkSub')}</span>
+            </div>
+            <span className="apk-modal-arrow">↓</span>
+          </a>
+        </div>
+
         <button type="button" className="btn btn-ghost" onClick={onClose} style={{ width: '100%', marginTop: '6px' }}>
           {t('close')}
         </button>
