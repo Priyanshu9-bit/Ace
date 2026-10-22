@@ -8,6 +8,7 @@ import Table from './components/Table.jsx';
 import Hand from './components/Hand.jsx';
 import ResultScreen from './components/ResultScreen.jsx';
 import RulesModal from './components/RulesModal.jsx';
+import InstallModal from './components/InstallModal.jsx';
 import VoiceBar from './components/VoiceBar.jsx';
 import WelcomeAnimation from './components/WelcomeAnimation.jsx';
 import { VoiceManager } from './voice.js';
@@ -75,6 +76,20 @@ export default function App() {
   const [toast, setToast] = useState(null); // { key } | { error }
   const [showResult, setShowResult] = useState(false);
   const [showRules, setShowRules] = useState(false);
+  const [showInstall, setShowInstall] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [isStandalone, setIsStandalone] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return (
+      window.matchMedia?.('(display-mode: standalone)')?.matches ||
+      window.navigator?.standalone === true
+    );
+  });
+  const [isIOS] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    const ua = window.navigator?.userAgent?.toLowerCase() || '';
+    return /iphone|ipad|ipod/.test(ua) && !window.MSStream;
+  });
   const [showWelcome, setShowWelcome] = useState(true);
   const [initialCode] = useState(() => {
     const c = new URLSearchParams(window.location.search).get('room');
@@ -112,6 +127,34 @@ export default function App() {
 
   const t = useCallback((key, vars) => translate(lang, key, vars), [lang]);
   useGameSounds(view, triggerGadhaBray);
+
+  useEffect(() => {
+    const handleBeforeInstall = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    const handleInstalled = () => {
+      setDeferredPrompt(null);
+      setIsStandalone(true);
+      setShowInstall(false);
+      setToast({ key: 'installed' });
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstall);
+    window.addEventListener('appinstalled', handleInstalled);
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
+      window.removeEventListener('appinstalled', handleInstalled);
+    };
+  }, []);
+
+  async function handleInstallApp() {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setDeferredPrompt(null);
+    }
+  }
 
   useEffect(() => {
     document.documentElement.lang = lang;
@@ -359,6 +402,8 @@ export default function App() {
         initialAvatar={avatar}
         initialCode={initialCode}
         onOpenRules={() => setShowRules(true)}
+        onOpenInstall={() => setShowInstall(true)}
+        isStandalone={isStandalone}
       />
     );
   } else if (view.phase === 'lobby') {
@@ -498,6 +543,16 @@ export default function App() {
         </span>
 
         <span className="topbar-actions">
+          {!isStandalone && (
+            <button
+              type="button"
+              className="pill-btn install-pill-btn"
+              onClick={() => setShowInstall(true)}
+              title={t('installApp')}
+            >
+              📲 <span className="hide-on-mobile">{t('installApp')}</span>
+            </button>
+          )}
           <button
             type="button"
             className="pill-btn"
@@ -548,6 +603,17 @@ export default function App() {
 
       {showRules && (
         <RulesModal t={t} onClose={() => setShowRules(false)} />
+      )}
+
+      {showInstall && (
+        <InstallModal
+          t={t}
+          onClose={() => setShowInstall(false)}
+          onInstall={handleInstallApp}
+          canPrompt={!!deferredPrompt}
+          isIOS={isIOS}
+          isStandalone={isStandalone}
+        />
       )}
 
       {toastText && (

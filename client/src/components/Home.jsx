@@ -20,6 +20,8 @@ export default function Home({
   initialAvatar,
   initialCode,
   onOpenRules,
+  onOpenInstall,
+  isStandalone,
 }) {
   const [mode, setMode] = useState(initialCode ? 'join' : 'create'); // 'create' | 'join'
   const [name, setName] = useState(initialName || '');
@@ -193,7 +195,7 @@ export default function Home({
         </button>
       </form>
 
-      <div className="row center" style={{ marginTop: '4px' }}>
+      <div className="row center" style={{ marginTop: '4px', gap: '8px', flexWrap: 'wrap' }}>
         <button
           type="button"
           className="btn btn-ghost btn-small"
@@ -201,6 +203,16 @@ export default function Home({
         >
           📖 {t('howToPlay')}
         </button>
+        {!isStandalone && (
+          <button
+            type="button"
+            className="btn btn-ghost btn-small"
+            style={{ color: 'var(--gold)', borderColor: 'rgba(245, 195, 66, 0.4)' }}
+            onClick={onOpenInstall}
+          >
+            📲 {t('installApp')}
+          </button>
+        )}
       </div>
       <p className="muted center" style={{ fontSize: '12px' }}>{t('inviteHint')}</p>
 
