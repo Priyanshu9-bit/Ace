@@ -184,9 +184,20 @@ export default function WelcomeAnimation({ t, onDismiss, lang = 'en' }) {
           <p className="welcome-subtitle">
             {t('welcomeSubtitle')}
           </p>
+        </div>
 
-          <p className="welcome-description">
-            {t('welcomeTagline')}
+        {/* Dedicated Creator & Developer Section */}
+        <div className="welcome-creator-card" aria-label="Created and developed by Priyanshu Panda">
+          <div className="creator-badge-label">
+            <span className="creator-flourish">✦</span>
+            <span>CREATED &amp; DEVELOPED BY</span>
+            <span className="creator-flourish">✦</span>
+          </div>
+          <div className="creator-name-prominent">
+            PRIYANSHU PANDA
+          </div>
+          <p className="creator-tagline-text">
+            “Turning Ideas into Interactive Experiences.”
           </p>
         </div>
 

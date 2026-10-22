@@ -203,6 +203,13 @@ export default function Home({
         </button>
       </div>
       <p className="muted center" style={{ fontSize: '12px' }}>{t('inviteHint')}</p>
+
+      {/* Developer Credit Footer */}
+      <div className="home-creator-credit" aria-label="Created and developed by Priyanshu Panda">
+        <span className="home-creator-label">CREATED &amp; DEVELOPED BY</span>
+        <span className="home-creator-name">PRIYANSHU PANDA</span>
+        <span className="home-creator-tagline">“Turning Ideas into Interactive Experiences.”</span>
+      </div>
     </main>
   );
 }

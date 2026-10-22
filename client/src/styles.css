@@ -2024,5 +2024,211 @@ h1, h2, h3, h4 {
   .welcome-features-row {
     display: none;
   }
+  .welcome-creator-card {
+    padding: 10px 14px;
+    margin: 2px auto;
+    max-width: 95%;
+  }
+  .creator-badge-label {
+    font-size: 9.5px;
+    letter-spacing: 1.8px;
+  }
+  .creator-name-prominent {
+    font-size: 20px;
+    letter-spacing: 1.2px;
+  }
+  .creator-tagline-text {
+    font-size: 11px;
+  }
+}
+
+/* ==========================================================================
+   Developer Showcase: PRIYANSHU PANDA
+   ========================================================================== */
+
+.welcome-creator-card {
+  width: 100%;
+  max-width: 480px;
+  margin: 2px auto 6px;
+  padding: 14px 22px;
+  background: linear-gradient(135deg, rgba(245, 195, 66, 0.12) 0%, rgba(10, 36, 23, 0.82) 45%, rgba(4, 18, 11, 0.88) 100%);
+  border: 1px solid rgba(245, 195, 66, 0.42);
+  border-radius: 18px;
+  box-shadow: 
+    0 10px 32px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 0 22px rgba(245, 195, 66, 0.22);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  animation: creatorEntrance 0.85s cubic-bezier(0.16, 1, 0.3, 1) 0.2s backwards;
+  position: relative;
+  overflow: hidden;
+}
+
+[data-theme="felt-crimson"] .welcome-creator-card {
+  background: linear-gradient(135deg, rgba(245, 195, 66, 0.12) 0%, rgba(55, 10, 15, 0.85) 45%, rgba(25, 4, 6, 0.9) 100%);
+}
+
+[data-theme="felt-midnight"] .welcome-creator-card {
+  background: linear-gradient(135deg, rgba(0, 242, 254, 0.12) 0%, rgba(14, 25, 58, 0.85) 45%, rgba(6, 10, 26, 0.9) 100%);
+  border-color: rgba(0, 242, 254, 0.45);
+  box-shadow: 
+    0 10px 32px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 0 22px rgba(0, 242, 254, 0.25);
+}
+
+.welcome-creator-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -120%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.14), transparent);
+  animation: creatorShimmer 4.5s infinite 1.2s;
+  pointer-events: none;
+}
+
+@keyframes creatorEntrance {
+  0% {
+    opacity: 0;
+    transform: translateY(18px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes creatorShimmer {
+  0% { left: -120%; }
+  35%, 100% { left: 160%; }
+}
+
+.creator-badge-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 2.8px;
+  color: var(--text-gold);
+  text-transform: uppercase;
+  opacity: 0.95;
+}
+
+[data-theme="felt-midnight"] .creator-badge-label {
+  color: #a5d8ff;
+}
+
+.creator-badge-label .creator-flourish {
+  color: var(--gold);
+  font-size: 11px;
+  animation: starTwinkle 2.5s ease-in-out infinite alternate;
+}
+
+@keyframes starTwinkle {
+  0% { transform: scale(0.85); opacity: 0.6; }
+  100% { transform: scale(1.25); opacity: 1; filter: drop-shadow(0 0 5px var(--gold)); }
+}
+
+.creator-name-prominent {
+  font-family: var(--font-display);
+  font-size: clamp(22px, 5.2vw, 30px);
+  font-weight: 900;
+  letter-spacing: 2px;
+  background: linear-gradient(135deg, #ffffff 0%, #fff1a8 25%, #f5c342 60%, #c98c14 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 2px 14px rgba(245, 195, 66, 0.65));
+  text-shadow: 0 0 24px rgba(245, 195, 66, 0.4);
+  animation: goldNamePulse 3.5s ease-in-out infinite alternate;
+  line-height: 1.15;
+}
+
+[data-theme="felt-midnight"] .creator-name-prominent {
+  background: linear-gradient(135deg, #ffffff 0%, #d4f4ff 25%, #00f2fe 60%, #0099ff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 2px 14px rgba(0, 242, 254, 0.65));
+  text-shadow: 0 0 24px rgba(0, 242, 254, 0.4);
+}
+
+@keyframes goldNamePulse {
+  0% {
+    filter: drop-shadow(0 2px 10px rgba(245, 195, 66, 0.5));
+  }
+  100% {
+    filter: drop-shadow(0 2px 20px rgba(245, 195, 66, 0.85)) drop-shadow(0 0 28px rgba(255, 235, 140, 0.5));
+  }
+}
+
+.creator-tagline-text {
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  font-size: clamp(12px, 2.6vw, 13.5px);
+  color: rgba(247, 250, 247, 0.92);
+  letter-spacing: 0.5px;
+  margin: 0;
+  text-align: center;
+  line-height: 1.35;
+}
+
+/* Home Panel Developer Credit */
+.home-creator-credit {
+  margin-top: 14px;
+  padding: 12px 16px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(245, 195, 66, 0.3);
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 3px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  animation: fadeUp 0.6s ease-out 0.2s backwards;
+}
+
+[data-theme="felt-midnight"] .home-creator-credit {
+  border-color: rgba(0, 242, 254, 0.3);
+}
+
+.home-creator-label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 2.2px;
+  color: var(--gold);
+  text-transform: uppercase;
+}
+
+.home-creator-name {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: 1.5px;
+  background: var(--gold-grad);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 2px 8px rgba(245, 195, 66, 0.45));
+}
+
+[data-theme="felt-midnight"] .home-creator-name {
+  background: var(--gold-grad);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 2px 8px rgba(0, 242, 254, 0.45));
+}
+
+.home-creator-tagline {
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  font-size: 12px;
+  color: var(--text-muted);
 }
 
