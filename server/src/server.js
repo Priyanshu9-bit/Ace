@@ -36,7 +36,10 @@ function createGameServer(config) {
 
   const httpServer = http.createServer(app);
   const io = new Server(httpServer, {
-    cors: config.clientOrigins.length ? { origin: config.clientOrigins } : undefined,
+    cors: {
+      origin: config.clientOrigins.length ? config.clientOrigins : '*',
+      methods: ['GET', 'POST'],
+    },
     maxHttpBufferSize: 10 * 1024, // gameplay messages are tiny; refuse anything large
     pingInterval: 10000,
     pingTimeout: 15000,
