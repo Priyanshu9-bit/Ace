@@ -9,6 +9,7 @@ import Hand from './components/Hand.jsx';
 import ResultScreen from './components/ResultScreen.jsx';
 import RulesModal from './components/RulesModal.jsx';
 import VoiceBar from './components/VoiceBar.jsx';
+import WelcomeAnimation from './components/WelcomeAnimation.jsx';
 import { VoiceManager } from './voice.js';
 
 function readStorage(key, fallback) {
@@ -74,6 +75,7 @@ export default function App() {
   const [toast, setToast] = useState(null); // { key } | { error }
   const [showResult, setShowResult] = useState(false);
   const [showRules, setShowRules] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(true);
   const [initialCode] = useState(() => {
     const c = new URLSearchParams(window.location.search).get('room');
     return c ? c.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8) : '';
@@ -454,13 +456,27 @@ export default function App() {
   return (
     <div className="app">
       <header className="topbar">
-        <span className="brand" onClick={() => !view && window.location.reload()}>
+        <span
+          className="brand"
+          onClick={() => setShowWelcome(true)}
+          title={t('replayIntro')}
+          role="button"
+          tabIndex={0}
+        >
           <span className="brand-icon" aria-hidden="true">🂠</span>
           <span>{t('appName')}</span>
           {lang === 'en' && <span className="brand-odia">ଗଧା</span>}
         </span>
 
         <span className="topbar-actions">
+          <button
+            type="button"
+            className="pill-btn"
+            onClick={() => setShowWelcome(true)}
+            title={t('replayIntro')}
+          >
+            ✨ {t('replayIntro')}
+          </button>
           <span
             className={`conn-beacon ${conn === 'offline' ? 'offline' : ''}`}
             title={conn === 'online' ? 'Online' : 'Reconnecting...'}
@@ -509,6 +525,14 @@ export default function App() {
         <div className="toast" role="alert">
           {toastText}
         </div>
+      )}
+
+      {showWelcome && (
+        <WelcomeAnimation
+          t={t}
+          lang={lang}
+          onDismiss={() => setShowWelcome(false)}
+        />
       )}
     </div>
   );

@@ -67,6 +67,14 @@ export const sounds = {
     );
   },
   error() { tone(160, 0, 0.15, { type: 'square', gain: 0.08 }); },
+  welcome() {
+    // Rich royal fanfare arpeggio: C4, E4, G4, C5, E5, with a gentle shimmering decay
+    const notes = [261.63, 329.63, 392.00, 523.25, 659.25];
+    notes.forEach((f, i) => {
+      tone(f, i * 0.11, 0.4, { type: 'triangle', gain: 0.14 });
+      tone(f * 2, i * 0.11 + 0.02, 0.25, { type: 'sine', gain: 0.05 });
+    });
+  },
 };
 
 export function isMuted() {

@@ -3,6 +3,12 @@
 export const STRINGS = {
   en: {
     appName: 'Gadhaa',
+    welcomeTitle: 'Gadhaa',
+    welcomeSubtitle: 'The Classic Odia Card Game',
+    enterGame: 'Enter Game',
+    skipIntro: 'Skip',
+    replayIntro: 'Intro',
+    welcomeTagline: 'The authentic Odia card game with live voice chat & real-time multiplayer.',
     tagline: 'The classic Odia card game — play with friends, anywhere.',
     yourName: 'Your name',
     namePlaceholder: 'Enter your name',
@@ -133,6 +139,12 @@ export const STRINGS = {
   },
   or: {
     appName: 'ଗଧା',
+    welcomeTitle: 'ଗଧା',
+    welcomeSubtitle: 'ପାରମ୍ପରିକ ଓଡ଼ିଆ ତାସ ଖେଳ',
+    enterGame: 'ଖେଳନ୍ତୁ',
+    skipIntro: 'ଛାଡ଼ନ୍ତୁ',
+    replayIntro: 'ସ୍ୱାଗତ',
+    welcomeTagline: 'ରିଅଲ-ଟାଇମ୍ ମଲ୍ଟିପ୍ଲେୟାର୍ ଏବଂ ଲାଇଭ୍ ଭଏସ୍ ଚାଟ୍ ସହିତ ଅସଲି ଓଡ଼ିଆ ଗଧା ଖେଳନ୍ତୁ।',
     tagline: 'ପାରମ୍ପରିକ ଓଡ଼ିଆ ତାସ ଖେଳ — ବନ୍ଧୁମାନଙ୍କ ସହ ଯେକୌଣସି ସ୍ଥାନରୁ ଖେଳନ୍ତୁ।',
     yourName: 'ଆପଣଙ୍କ ନାମ',
     namePlaceholder: 'ନାମ ଲେଖନ୍ତୁ',
