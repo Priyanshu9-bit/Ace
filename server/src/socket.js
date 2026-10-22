@@ -191,6 +191,17 @@ function registerSocketHandlers(io, manager, config) {
       manager.newGame(room, player);
     });
 
+    on('game:gadhaSound', () => {
+      const { room, player } = context();
+      emitToRoom(room, 'game:gadhaSound', {
+        gadhaId: room.game?.result?.gadhaId,
+        gadhaSeat: room.game?.result?.gadhaSeat,
+        senderId: player.id,
+        senderName: player.name,
+      });
+      return { ok: true };
+    });
+
     on('voice:join', ({ muted }) => {
       const { room, player } = context();
       manager.setVoiceActive(room, player, true, !!muted);

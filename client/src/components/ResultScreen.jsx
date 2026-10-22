@@ -1,26 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { sounds } from '../sound.js';
 
-export default function ResultScreen({ view, t, busy, onNewGame, onLeave }) {
+export default function ResultScreen({ view, t, busy, gadhaBraying, onPlayGadhaSound, onNewGame, onLeave }) {
   const { game, players, you } = view;
   const result = game.result;
   const iAmGadha = result.gadhaId === you.id;
   const finishOrder = result.finishOrder || [];
-  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+  const [localPlaying, setLocalPlaying] = useState(false);
 
-  useEffect(() => {
-    if (iAmGadha) {
-      sounds.gadha();
-      setIsPlayingAudio(true);
-      const timer = setTimeout(() => setIsPlayingAudio(false), 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [iAmGadha]);
+  const isBraying = !!(gadhaBraying || localPlaying);
 
   function handlePlaySound() {
-    sounds.gadha();
-    setIsPlayingAudio(true);
-    setTimeout(() => setIsPlayingAudio(false), 3000);
+    if (onPlayGadhaSound) {
+      onPlayGadhaSound();
+    } else {
+      sounds.gadha();
+    }
+    setLocalPlaying(true);
+    setTimeout(() => setLocalPlaying(false), 3800);
   }
 
   // Sort players by exact finish order: #1 Winner, #2, ... up to the Gadha at the end
@@ -40,7 +37,7 @@ export default function ResultScreen({ view, t, busy, onNewGame, onLeave }) {
       <div className={`result-card ${iAmGadha ? 'is-me' : ''}`}>
         <button
           type="button"
-          className={`donkey-mascot-btn ${isPlayingAudio ? 'is-playing' : ''}`}
+          className={`donkey-mascot-btn ${isBraying ? 'is-playing' : ''}`}
           onClick={handlePlaySound}
           title={t('playGadhaSound')}
           aria-label={t('playGadhaSound')}
@@ -49,9 +46,30 @@ export default function ResultScreen({ view, t, busy, onNewGame, onLeave }) {
             🫏
           </span>
           <span className="sound-badge">
-            {isPlayingAudio ? '🔊 🎵' : t('playGadhaSound')}
+            {isBraying ? `🔊 🎵 ${t('brayingNow')}` : t('playGadhaSound')}
           </span>
         </button>
+
+        {isBraying && (
+          <div className="gadha-speech-bubble" role="status" aria-live="polite">
+            <div className="speech-bubble-speaker">
+              <span className="speech-live-dot"></span>
+              <span>
+                🗣️ <strong>{result.gadhaName}</strong> {iAmGadha ? `(${t('you')})` : ''} {t('isSaying')}:
+              </span>
+            </div>
+            <div className="speech-bubble-quote">
+              "{t('gadhaBrayText')}"
+            </div>
+            <div className="speech-soundwaves" aria-hidden="true">
+              <span className="wave-bar b1"></span>
+              <span className="wave-bar b2"></span>
+              <span className="wave-bar b3"></span>
+              <span className="wave-bar b4"></span>
+              <span className="wave-bar b5"></span>
+            </div>
+          </div>
+        )}
 
         <p className="muted center" style={{ margin: 0, textTransform: 'uppercase', letterSpacing: '1px' }}>
           {t('gameOver')}
@@ -61,8 +79,9 @@ export default function ResultScreen({ view, t, busy, onNewGame, onLeave }) {
           {iAmGadha ? t('youAreGadha') : t('gadhaIs')}
         </h2>
 
-        <div className="gadha-title-name">
+        <div className={`gadha-title-name ${isBraying ? 'braying-active' : ''}`}>
           {iAmGadha ? 'ଗଧ · GADHA' : result.gadhaName}
+          {isBraying && <span className="bray-live-indicator" aria-hidden="true">🗣️ 📢</span>}
         </div>
 
         <p className="muted center" style={{ fontSize: '13px', lineHeight: '1.4' }}>
@@ -74,15 +93,26 @@ export default function ResultScreen({ view, t, busy, onNewGame, onLeave }) {
             const isGadha = p.id === result.gadhaId;
             const isWinner = idx === 0 && !isGadha;
             return (
-              <li key={p.id} className={`${isGadha ? 'gadha' : ''} ${isWinner ? 'winner' : ''}`}>
+              <li
+                key={p.id}
+                className={`${isGadha ? 'gadha' : ''} ${isWinner ? 'winner' : ''} ${isGadha && isBraying ? 'is-braying-speaker' : ''}`}
+              >
                 <span>
-                  {isGadha ? '🫏 ' : isWinner ? '👑 #1 ' : `#${idx + 1} `}
+                  {isGadha ? (isBraying ? '🗣️ 🫏 ' : '🫏 ') : isWinner ? '👑 #1 ' : `#${idx + 1} `}
                   {p.name}
                   {p.id === you.id ? ` (${t('you')})` : ''}
                 </span>
                 <span>
                   {isGadha ? (
-                    <b style={{ color: '#ff9999' }}>GADHAA (ଗଧ)</b>
+                    <span className="gadha-badge-group">
+                      <b style={{ color: '#ff9999' }}>GADHAA (ଗଧ)</b>
+                      {isBraying && (
+                        <span className="bray-badge-tag">
+                          <span className="pulse-dot"></span>
+                          {t('brayingNow')}
+                        </span>
+                      )}
+                    </span>
                   ) : (
                     <span className="badge-safe">✓ {t('safe')}</span>
                   )}

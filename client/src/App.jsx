@@ -28,7 +28,7 @@ function writeStorage(key, value) {
 }
 
 /** Plays sound effects when the game state changes in an interesting way. */
-function useGameSounds(view) {
+function useGameSounds(view, onGadhaBray) {
   const prev = useRef({ trick: 0, seq: null, myTurn: false, phase: null, cutSeq: null });
   useEffect(() => {
     const g = view?.game;
@@ -49,8 +49,8 @@ function useGameSounds(view) {
       sounds.turn();
     }
     if (view.phase === 'finished' && p.phase !== 'finished' && g.result) {
-      if (g.result.gadhaId === view.you.id) sounds.lose();
-      else sounds.win();
+      if (onGadhaBray) onGadhaBray();
+      else sounds.gadha();
     }
     prev.current = {
       trick: g.trick.length,
@@ -59,7 +59,7 @@ function useGameSounds(view) {
       phase: view.phase,
       cutSeq: p.cutSeq,
     };
-  }, [view]);
+  }, [view, onGadhaBray]);
 }
 
 export default function App() {
@@ -95,8 +95,23 @@ export default function App() {
   const [speakingMap, setSpeakingMap] = useState(new Map());
   const [voiceBusy, setVoiceBusy] = useState(false);
 
+  const [gadhaBraying, setGadhaBraying] = useState(false);
+  const gadhaTimerRef = useRef(null);
+
+  const triggerGadhaBray = useCallback(() => {
+    sounds.gadha();
+    setGadhaBraying(true);
+    if (gadhaTimerRef.current) clearTimeout(gadhaTimerRef.current);
+    gadhaTimerRef.current = setTimeout(() => setGadhaBraying(false), 3800);
+  }, []);
+
+  const broadcastGadhaSound = useCallback(() => {
+    triggerGadhaBray();
+    request('game:gadhaSound', {});
+  }, [triggerGadhaBray]);
+
   const t = useCallback((key, vars) => translate(lang, key, vars), [lang]);
-  useGameSounds(view);
+  useGameSounds(view, triggerGadhaBray);
 
   useEffect(() => {
     document.documentElement.lang = lang;
@@ -153,11 +168,16 @@ export default function App() {
       },
     });
 
+    const onGadhaSound = () => {
+      triggerGadhaBray();
+    };
+
     socket.on('connect', onConnect);
     socket.on('disconnect', onDisconnect);
     socket.on('connect_error', onDisconnect);
     socket.on('state', onState);
     socket.on('session:replaced', onReplaced);
+    socket.on('game:gadhaSound', onGadhaSound);
     if (socket.connected) onConnect();
     else socket.connect();
     return () => {
@@ -167,8 +187,9 @@ export default function App() {
       socket.off('connect_error', onDisconnect);
       socket.off('state', onState);
       socket.off('session:replaced', onReplaced);
+      socket.off('game:gadhaSound', onGadhaSound);
     };
-  }, []);
+  }, [triggerGadhaBray]);
 
   useEffect(() => {
     if (view) {
@@ -422,7 +443,7 @@ export default function App() {
           </div>
         </div>
 
-        <Table view={view} t={t} speakingMap={speakingMap} />
+        <Table view={view} t={t} speakingMap={speakingMap} gadhaBraying={gadhaBraying} />
 
         {view.you.isSpectator ? (
           <div className="spectator-hand-panel">
@@ -447,7 +468,15 @@ export default function App() {
         )}
 
         {finished && showResult && view.game.result && (
-          <ResultScreen view={view} t={t} busy={busy} onNewGame={newGame} onLeave={leaveRoom} />
+          <ResultScreen
+            view={view}
+            t={t}
+            busy={busy}
+            gadhaBraying={gadhaBraying}
+            onPlayGadhaSound={broadcastGadhaSound}
+            onNewGame={newGame}
+            onLeave={leaveRoom}
+          />
         )}
       </main>
     );

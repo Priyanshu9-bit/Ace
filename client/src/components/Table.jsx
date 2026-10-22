@@ -78,7 +78,7 @@ function TurnTimerRing({ startedAt, timeoutMs }) {
   );
 }
 
-export default function Table({ view, t, speakingMap }) {
+export default function Table({ view, t, speakingMap, gadhaBraying }) {
   const { players, you, game } = view;
   const n = players.length;
   const viewerSeat = you.seat >= 0 ? you.seat : 0;
@@ -206,6 +206,8 @@ export default function Table({ view, t, speakingMap }) {
         const isSpeaking = speakingMap?.get(p.id) || (p.seat === you.seat && speakingMap?.get('me'));
         const isVoiceActive = p.voice?.active;
         const isVoiceMuted = p.voice?.muted;
+        const isGadha = game?.result && p.id === game.result.gadhaId;
+        const isGadhaBraying = !!(isGadha && gadhaBraying);
 
         return (
           <div
@@ -217,10 +219,16 @@ export default function Table({ view, t, speakingMap }) {
               isWinner ? 'winner' : '',
               isPenalized ? 'penalized' : '',
               isSpeaking ? 'is-speaking' : '',
+              isGadhaBraying ? 'is-gadha-braying' : '',
               !p.connected ? 'away' : '',
             ].filter(Boolean).join(' ')}
             style={{ left: `${g.avatar.x}%`, top: `${g.avatar.y}%` }}
           >
+            {isGadhaBraying && (
+              <div className="table-felt-speech-bubble" aria-hidden="true">
+                🫏 Dheenchhu! 🔊
+              </div>
+            )}
             {isTurn && (
               <TurnTimerRing
                 startedAt={game.turnStartedAt || view.turnStartedAt}

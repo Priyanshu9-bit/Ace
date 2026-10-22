@@ -522,3 +522,28 @@ test('voice chat: signaling, join, mute, signal forwarding strictly in room, and
   }
 });
 
+test('gadhaSound: emitted by any player and broadcast to all players in the room', async () => {
+  const { server, url } = await startTestServer();
+  try {
+    const { clients } = await setupTable(url, ['Alice', 'Bob']);
+    const [alice, bob] = clients;
+
+    let bobHeard = null;
+    bob.socket.on('game:gadhaSound', (data) => {
+      bobHeard = data;
+    });
+
+    const res = await alice.emit('game:gadhaSound', {});
+    assert.equal(res.ok, true);
+
+    await new Promise((r) => setTimeout(r, 50));
+    assert.ok(bobHeard !== null);
+    assert.equal(bobHeard.senderId, alice.session.playerId);
+
+    clients.forEach((c) => c.close());
+  } finally {
+    await server.close();
+  }
+});
+
+
