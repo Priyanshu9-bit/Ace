@@ -67,10 +67,10 @@ test('leader of a round may lead any card', () => {
   const g = rigged();
   g.playCard(0, 'AS');
   g.playCard(1, 'KS');
-  g.playCard(2, '3D'); // seat 2 cuts and becomes the next leader
-  assert.equal(g.turnSeat, 2);
-  assert.equal(g.legalCards(2).length, 2);
-  assert.doesNotThrow(() => g.playCard(2, '4D'));
+  g.playCard(2, '3D'); // seat 2 cuts; penalty seat 0 picks up cards and leads next
+  assert.equal(g.turnSeat, 0);
+  assert.equal(g.legalCards(0).length, 5);
+  assert.doesNotThrow(() => g.playCard(0, '5S'));
 });
 
 test('out-of-turn plays are rejected', () => {
@@ -156,7 +156,7 @@ test('normal trick: cards are discarded and highest lead-suit player leads next'
   assert.equal(g.hands[0].length, 2);
 });
 
-test('cut mechanic: round ends immediately, highest lead-suit card picks up cards into hand, cutter leads next', () => {
+test('cut mechanic: round ends immediately, highest lead-suit card picks up cards into hand, penalty seat leads next', () => {
   const g = rigged(); // seat0: AS 5S 9H | seat1: KS 2S QH | seat2: 3D 4D 6C
   g.playCard(0, 'AS');
   g.playCard(1, 'KS');
@@ -167,8 +167,8 @@ test('cut mechanic: round ends immediately, highest lead-suit card picks up card
   assert.equal(outcome.penaltySeat, 0); // seat 0 played AS
   // seat 0 had 3 cards, played 1, picked up 3 (AS, KS, 3D) -> 5 cards
   assert.equal(g.hands[0].length, 5);
-  // cutter (seat 2) leads next
-  assert.equal(g.turnSeat, 2);
+  // penalty seat (seat 0) leads next
+  assert.equal(g.turnSeat, 0);
   assert.equal(g.trick.length, 0);
   assert.equal(g.leadSuit, null);
 });
@@ -185,10 +185,11 @@ test('multi-card cut mechanic: cutter can play multiple cards of same suit, high
   assert.equal(outcome.penaltySeat, 0); // seat 0 played AS
   // seat 0 had 3 cards, played 1, picked up 4 (AS, KS, 3D, 4D) -> 6 cards
   assert.equal(g.hands[0].length, 6);
-  // cutter (seat 2) played 2 cards, has 1 card left ('6C'), and leads next!
+  // cutter (seat 2) played 2 cards, has 1 card left ('6C')
   assert.equal(g.hands[2].length, 1);
   assert.equal(g.hands[2][0].id, '6C');
-  assert.equal(g.turnSeat, 2);
+  // penalty seat (seat 0) leads next!
+  assert.equal(g.turnSeat, 0);
   assert.equal(g.trick.length, 0);
   assert.equal(g.leadSuit, null);
 });
@@ -203,10 +204,10 @@ test('multi-card cut validation: rejects different suits, multi-card lead, or mu
   g.playCard(1, 'KS');
   // Seat 2 is void in Spades, but tries to play different suits ('3D' and '6C')
   assert.equal(codeOf(() => g.playCard(2, ['3D', '6C'])), 'MUST_BE_SAME_SUIT');
-  // Cut with 3D -> round resolves and seat 2 leads next
+  // Cut with 3D -> round resolves and seat 0 (penalty seat) leads next
   g.playCard(2, '3D');
-  // Seat 2 leads next trick, cannot lead multiple cards
-  assert.equal(codeOf(() => g.playCard(2, ['4D', '6C'])), 'CANNOT_PLAY_MULTIPLE_CARDS');
+  // Seat 0 leads next trick, cannot lead multiple cards
+  assert.equal(codeOf(() => g.playCard(0, ['5S', '9H'])), 'CANNOT_PLAY_MULTIPLE_CARDS');
 });
 
 
@@ -237,7 +238,7 @@ test('autoResolve:false keeps the full round on the table until resolveTrick()',
   assert.equal(g.trick.length, 3);
   assert.equal(g.pendingWinner(), 0);
   assert.equal(codeOf(() => g.playCard(0, '5S')), 'ROUND_RESOLVING');
-  assert.equal(g.resolveTrick(), 2); // cutter leads
+  assert.equal(g.resolveTrick(), 0); // penalty recipient leads
   assert.equal(g.phase, 'playing');
   assert.equal(codeOf(() => g.resolveTrick()), 'NOTHING_TO_RESOLVE');
 });

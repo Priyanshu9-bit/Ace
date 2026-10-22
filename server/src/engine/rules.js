@@ -48,7 +48,7 @@ function determineGadha(game) {
     for (const s of holders) {
       if (game.hands[s].length > game.hands[maxSeat].length) maxSeat = s;
     }
-    return { seat: maxSeat, reason: 'LAST_HOLDER' };
+    return { seat: maxSeat, reason: 'NO_COMMON_SUITS' };
   }
   if (game.lastTrick && game.lastTrick.penaltySeat !== null && game.lastTrick.penaltySeat !== undefined) {
     return { seat: game.lastTrick.penaltySeat, reason: 'LAST_PENALTY' };

@@ -176,7 +176,7 @@ class GadhaGame {
         isCut: true,
         cutterSeat,
         penaltySeat,
-        winnerSeat: cutterSeat,
+        winnerSeat: penaltySeat,
         plays: this.trick.map((p) => ({ ...p })),
       };
       this.phase = 'resolving';
@@ -185,7 +185,7 @@ class GadhaGame {
         isCut: true,
         cutterSeat,
         penaltySeat,
-        winnerSeat: cutterSeat,
+        winnerSeat: penaltySeat,
       };
       if (autoResolve) {
         this.resolveTrick();
@@ -240,7 +240,7 @@ class GadhaGame {
     if (isCut && penaltySeat !== null && penaltySeat !== undefined) {
       this.hands[penaltySeat].push(...this.trick.map((p) => p.card));
       this.hands[penaltySeat] = sortHand(this.hands[penaltySeat]);
-      this.lastTrickWinner = cutterSeat;
+      this.lastTrickWinner = penaltySeat;
     } else {
       this.discarded.push(...this.trick.map((p) => p.card));
       this.lastTrickWinner = winnerSeat;
@@ -266,20 +266,20 @@ class GadhaGame {
         finishOrder: [...this.finishOrder.filter((s) => s !== seat), seat],
       };
       this.phase = 'finished';
-      return isCut ? cutterSeat : winnerSeat;
+      return isCut && penaltySeat !== null ? penaltySeat : winnerSeat;
     }
 
     // Next round leader:
-    // If cut: the cutter leads. If cutter has no cards left, next clockwise seat that has cards.
+    // If cut: the player who received the cut cards (penaltySeat) leads.
     // If normal: trick winner leads. If winner has no cards left, next clockwise seat that has cards.
-    let leader = isCut && penaltySeat !== null ? cutterSeat : winnerSeat;
+    let leader = isCut && penaltySeat !== null ? penaltySeat : winnerSeat;
     while (this.hands[leader].length === 0) {
       leader = (leader + 1) % this.playerCount;
     }
 
     this.round += 1;
     this._startRound(leader);
-    return isCut ? cutterSeat : winnerSeat;
+    return isCut && penaltySeat !== null ? penaltySeat : winnerSeat;
   }
 }
 
