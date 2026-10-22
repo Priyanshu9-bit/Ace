@@ -930,11 +930,84 @@ h1, h2, h3, h4 {
   box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7), 0 0 35px rgba(255, 80, 80, 0.5);
 }
 
+.donkey-mascot-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  margin: 0 auto;
+  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), filter 0.2s ease;
+  user-select: none;
+  text-decoration: none;
+  font-family: inherit;
+}
+.donkey-mascot-btn:hover {
+  transform: scale(1.08);
+  filter: drop-shadow(0 0 16px rgba(255, 215, 0, 0.5));
+}
+.donkey-mascot-btn:active {
+  transform: scale(0.95);
+}
 .donkey-mascot {
   font-size: 80px;
   text-align: center;
   line-height: 1;
-  animation: donkeyBounce 1.5s ease-in-out infinite;
+  display: inline-block;
+  animation: donkeyBounce 1.6s ease-in-out infinite;
+  transform-origin: bottom center;
+}
+.donkey-mascot-btn.is-playing .donkey-mascot {
+  animation: donkeyWiggle 0.45s ease-in-out infinite !important;
+}
+
+@keyframes donkeyBounce {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-8px) scale(1.05);
+  }
+}
+
+@keyframes donkeyWiggle {
+  0% { transform: translateY(-4px) rotate(0deg) scale(1.12); }
+  25% { transform: translateY(-8px) rotate(-12deg) scale(1.18); }
+  50% { transform: translateY(-2px) rotate(10deg) scale(1.18); }
+  75% { transform: translateY(-8px) rotate(-8deg) scale(1.14); }
+  100% { transform: translateY(-4px) rotate(0deg) scale(1.12); }
+}
+
+.sound-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  padding: 5px 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--gold);
+  border: 1px solid rgba(245, 195, 66, 0.35);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  transition: all 0.25s ease;
+}
+.donkey-mascot-btn:hover .sound-badge,
+.donkey-mascot-btn.is-playing .sound-badge {
+  background: rgba(245, 195, 66, 0.3);
+  border-color: var(--gold);
+  color: #fff;
+  box-shadow: 0 0 16px rgba(245, 195, 66, 0.5);
+  transform: translateY(-2px);
 }
 .result-header {
   text-align: center;

@@ -1,10 +1,27 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { sounds } from '../sound.js';
 
 export default function ResultScreen({ view, t, busy, onNewGame, onLeave }) {
   const { game, players, you } = view;
   const result = game.result;
   const iAmGadha = result.gadhaId === you.id;
   const finishOrder = result.finishOrder || [];
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+
+  useEffect(() => {
+    if (iAmGadha) {
+      sounds.gadha();
+      setIsPlayingAudio(true);
+      const timer = setTimeout(() => setIsPlayingAudio(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [iAmGadha]);
+
+  function handlePlaySound() {
+    sounds.gadha();
+    setIsPlayingAudio(true);
+    setTimeout(() => setIsPlayingAudio(false), 3000);
+  }
 
   // Sort players by exact finish order: #1 Winner, #2, ... up to the Gadha at the end
   const ranked = [...players].sort((a, b) => {
@@ -21,9 +38,20 @@ export default function ResultScreen({ view, t, busy, onNewGame, onLeave }) {
   return (
     <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="result-title">
       <div className={`result-card ${iAmGadha ? 'is-me' : ''}`}>
-        <div className="donkey-mascot" aria-hidden="true">
-          🫏
-        </div>
+        <button
+          type="button"
+          className={`donkey-mascot-btn ${isPlayingAudio ? 'is-playing' : ''}`}
+          onClick={handlePlaySound}
+          title={t('playGadhaSound')}
+          aria-label={t('playGadhaSound')}
+        >
+          <span className="donkey-mascot" aria-hidden="true">
+            🫏
+          </span>
+          <span className="sound-badge">
+            {isPlayingAudio ? '🔊 🎵' : t('playGadhaSound')}
+          </span>
+        </button>
 
         <p className="muted center" style={{ margin: 0, textTransform: 'uppercase', letterSpacing: '1px' }}>
           {t('gameOver')}
@@ -34,7 +62,7 @@ export default function ResultScreen({ view, t, busy, onNewGame, onLeave }) {
         </h2>
 
         <div className="gadha-title-name">
-          {iAmGadha ? 'ଗଧା · GADHAA' : result.gadhaName}
+          {iAmGadha ? 'ଗଧ · GADHA' : result.gadhaName}
         </div>
 
         <p className="muted center" style={{ fontSize: '13px', lineHeight: '1.4' }}>

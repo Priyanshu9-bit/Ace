@@ -1,6 +1,12 @@
-// Tiny synthesized sound effects (Web Audio) - no audio files to download.
+import gadhaUrl from './assets/gadha.mp3';
+import { GADHA_AUDIO_DATA_URI } from './assets/gadhaAudioBase64.js';
+
+// Sound effects engine: plays custom audio files (e.g. gadha.mp3) with Web Audio synthesized fallbacks.
 let ctx = null;
 let muted = false;
+let currentAudio = null;
+let decodedGadhaBuffer = null;
+
 try {
   muted = localStorage.getItem('gadha.muted') === '1';
 } catch {
@@ -16,6 +22,26 @@ function audio() {
   } catch {
     return null;
   }
+}
+
+// Pre-decode audio buffer for immediate WebAudio playback if available
+async function ensureGadhaBuffer() {
+  if (decodedGadhaBuffer) return decodedGadhaBuffer;
+  const c = audio();
+  if (!c) return null;
+  try {
+    const res = await fetch(GADHA_AUDIO_DATA_URI);
+    const ab = await res.arrayBuffer();
+    decodedGadhaBuffer = await c.decodeAudioData(ab);
+    return decodedGadhaBuffer;
+  } catch (e) {
+    return null;
+  }
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('pointerdown', () => ensureGadhaBuffer(), { once: true });
+  window.addEventListener('keydown', () => ensureGadhaBuffer(), { once: true });
 }
 
 function tone(freq, start, dur, { type = 'sine', gain = 0.15, slideTo } = {}) {
@@ -34,6 +60,78 @@ function tone(freq, start, dur, { type = 'sine', gain = 0.15, slideTo } = {}) {
   osc.start(t0);
   osc.stop(t0 + dur + 0.02);
 }
+
+export function stopCurrentAudio() {
+  if (currentAudio) {
+    try {
+      currentAudio.pause();
+      currentAudio.currentTime = 0;
+    } catch {
+      /* ignore */
+    }
+    currentAudio = null;
+  }
+}
+
+export function isAudioPlaying() {
+  return !!(currentAudio && !currentAudio.paused && !currentAudio.ended);
+}
+
+export function playAudio(urls, { volume = 1.0, fallback } = {}) {
+  if (muted) return null;
+  stopCurrentAudio();
+
+  const list = Array.isArray(urls) ? urls : [urls];
+  let idx = 0;
+
+  function tryNext() {
+    if (idx >= list.length) {
+      if (fallback) fallback();
+      return;
+    }
+    const src = list[idx++];
+    try {
+      const audioEl = new Audio(src);
+      audioEl.volume = volume;
+      audioEl.preload = 'auto';
+      currentAudio = audioEl;
+
+      const playPromise = audioEl.play();
+      if (playPromise !== undefined) {
+        playPromise.catch((err) => {
+          console.warn('[sound] audio play failed, trying next:', err);
+          if (currentAudio === audioEl) currentAudio = null;
+          tryNext();
+        });
+      }
+
+      audioEl.addEventListener('error', (e) => {
+        console.warn('[sound] audio error event, trying next:', e);
+        if (currentAudio === audioEl) currentAudio = null;
+        tryNext();
+      }, { once: true });
+
+      audioEl.addEventListener('ended', () => {
+        if (currentAudio === audioEl) currentAudio = null;
+      }, { once: true });
+    } catch (err) {
+      console.warn('[sound] error creating audio element:', err);
+      tryNext();
+    }
+  }
+
+  tryNext();
+  return currentAudio;
+}
+
+const GADHA_AUDIO_SOURCES = [
+  gadhaUrl,
+  GADHA_AUDIO_DATA_URI,
+  '/sounds/gadha.mp3',
+  '/sounds/gadha-audio.mp3',
+  '/sounds/gadha%20audio.mp3',
+  '/gadha%20audio.mp3',
+];
 
 export const sounds = {
   click() { tone(800, 0, 0.03, { type: 'sine', gain: 0.08 }); },
@@ -55,12 +153,48 @@ export const sounds = {
     tone(440, 0, 0.08, { type: 'triangle', gain: 0.14, slideTo: 660 });
     tone(660, 0.05, 0.12, { type: 'sine', gain: 0.12 });
   },
-  win() {
+  win(customSrc) {
+    const list = customSrc ? [customSrc] : ['/sounds/victory.mp3', '/sounds/win.mp3'];
+    playAudio(list, {
+      volume: 0.85,
+      fallback: () => sounds.synthWin(),
+    });
+  },
+  synthWin() {
     [523.25, 659.25, 783.99, 1046.5].forEach((f, i) =>
       tone(f, i * 0.1, 0.28, { type: 'triangle', gain: 0.18 })
     );
   },
+  gadha(customSrc) {
+    if (muted) return;
+
+    // Fast path: Web Audio buffer if already decoded
+    const c = audio();
+    if (!customSrc && c && decodedGadhaBuffer) {
+      try {
+        stopCurrentAudio();
+        const srcNode = c.createBufferSource();
+        srcNode.buffer = decodedGadhaBuffer;
+        const gainNode = c.createGain();
+        gainNode.gain.value = 1.0;
+        srcNode.connect(gainNode).connect(c.destination);
+        srcNode.start(0);
+        return;
+      } catch (err) {
+        console.warn('[sound] buffer playback failed, falling back to Audio:', err);
+      }
+    }
+
+    const list = customSrc ? (Array.isArray(customSrc) ? customSrc : [customSrc]) : GADHA_AUDIO_SOURCES;
+    playAudio(list, {
+      volume: 1.0,
+      fallback: () => sounds.synthLose(),
+    });
+  },
   lose() {
+    sounds.gadha();
+  },
+  synthLose() {
     // Playful sad trombone (wa-wa-wa-waaa)
     [311.13, 293.66, 277.18, 261.63].forEach((f, i) =>
       tone(f, i * 0.2, 0.35, { type: 'sawtooth', gain: 0.12, slideTo: f * 0.95 })
@@ -83,6 +217,9 @@ export function isMuted() {
 
 export function setMuted(value) {
   muted = value;
+  if (muted) {
+    stopCurrentAudio();
+  }
   try {
     localStorage.setItem('gadha.muted', value ? '1' : '0');
   } catch {
