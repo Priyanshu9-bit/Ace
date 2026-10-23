@@ -31,6 +31,23 @@ function createGameServer(config) {
     return res.redirect(GITHUB_RELEASES_URL);
   });
 
+  app.get(['/privacy', '/privacy-policy'], (req, res) => {
+    const privacyPath = path.join(CLIENT_DIST, 'privacy.html');
+    if (fs.existsSync(privacyPath)) {
+      return res.sendFile(privacyPath);
+    }
+    return res.redirect('/');
+  });
+
+  app.get('/.well-known/assetlinks.json', (req, res) => {
+    const assetlinksPath = path.join(CLIENT_DIST, '.well-known', 'assetlinks.json');
+    if (fs.existsSync(assetlinksPath)) {
+      res.setHeader('Content-Type', 'application/json');
+      return res.sendFile(assetlinksPath);
+    }
+    res.status(404).json({ error: 'Asset links not yet configured' });
+  });
+
   const indexHtml = path.join(CLIENT_DIST, 'index.html');
   if (config.serveClient && fs.existsSync(indexHtml)) {
     app.use(express.static(CLIENT_DIST, { maxAge: '1h', index: false }));
