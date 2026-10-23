@@ -21,7 +21,7 @@
       "purpose": "any"
     },
     {
-      "src": "/icons/icon-maskable.png",
+      "src": "/icons/icon-maskable-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable"
@@ -33,7 +33,7 @@
       "purpose": "any"
     },
     {
-      "src": "/icons/icon-maskable.png",
+      "src": "/icons/icon-maskable-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
@@ -45,8 +45,34 @@
       "short_name": "Play",
       "description": "Launch the card table",
       "url": "/",
-      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+      "icons": [
+        {
+          "src": "/icons/icon-96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        },
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
     }
   ],
-  "screenshots": []
+  "screenshots": [
+    {
+      "src": "/screenshots/screen-wide.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Gadhaa Card Table on Desktop"
+    },
+    {
+      "src": "/screenshots/screen-narrow.png",
+      "sizes": "720x1280",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Gadhaa Card Table on Mobile"
+    }
+  ]
 }

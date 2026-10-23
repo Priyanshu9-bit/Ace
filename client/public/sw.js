@@ -2,7 +2,7 @@
 /**
  * Gadhaa Service Worker for offline shell caching and PWA standalone experience.
  */
-const CACHE_NAME = 'gadha-cache-v1';
+const CACHE_NAME = 'gadha-cache-v2';
 
 const STATIC_ASSETS = [
   '/',
