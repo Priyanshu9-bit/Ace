@@ -1,63 +1,45 @@
-# Ace
+# Gadhaa · ଗଧା 🫏👑
 
-A real-time multiplayer web application with WebRTC voice chat and Socket.IO live synchronization.
-Built with React + Vite on the frontend and Node.js + Express on the backend.
+Real-time multiplayer Odia **Gadhaa** (Donkey / Bhabhi) card game with built-in voice chat!
+
+🌐 **Play Live**: [https://ace-upfx.onrender.com](https://ace-upfx.onrender.com)
+
+---
+
+## 📱 How to Install the App (Android / iPhone)
+
+You don't need an app store — you can install it directly from your browser for **free**:
+
+1. Open **[https://ace-upfx.onrender.com](https://ace-upfx.onrender.com)** on your mobile phone (Chrome on Android or Safari on iPhone).
+2. Tap **"Install App"** (or in Safari: tap **Share** ➔ **Add to Home Screen**).
+3. The **Gadhaa** icon appears on your home screen and opens full-screen like a native app!
+
+---
+
+## 🎮 Key Features
+
+- **Multiplayer Tables**: Play with 2 to 13 friends with private room codes.
+- **Built-in Voice Chat 🎙️**: Talk live with other players while playing.
+- **Mentor / Guide Mode 👑**: Once you become safe, you can request to view another player's cards and whisper tips to help them!
+- **Bilingual**: Full support for both **English** and **Odia (ଓଡ଼ିଆ)**.
+- **Works Offline**: Offline fallback screen and auto-reconnection if your internet drops.
+
+---
+
+## 🛠️ Quick Start (Run Locally)
 
 ```bash
+# 1. Install dependencies
 npm install
-npm start          # builds the client on first run, then serves on http://localhost:3001
-```
 
-## Features
-
-- **Real-Time Rooms**: Room creation, short joining codes, and live multi-user synchronization via Socket.IO.
-- **Built-in Voice Chat**: Peer-to-peer WebRTC mesh voice communication with live mic status and speaking activity detection.
-- **Responsive Interface**: Glassmorphism UI, desktop & mobile optimized, customizable themes, and smooth animations.
-- **Server-Authoritative**: Complete room state management, validation, and session recovery handled on the backend.
-- **Internationalization**: Dual language support (English and Odia).
-
-## Requirements
-
-* Node.js **20.19+** (Node 22 recommended) and npm 10+.
-
-## Running Locally
-
-### Production Mode
-
-```bash
-npm install
+# 2. Start the game server & client
 npm start
-# -> http://localhost:3001
 ```
 
-### Development Mode
+Open [http://localhost:3001](http://localhost:3001) in your browser.
 
-```bash
-npm install
-npm run dev
-# client: http://localhost:5173
-# server: http://localhost:3001
-```
-
-## Tests
-
+### Run Tests
 ```bash
 npm test
 ```
-
-Includes 49 automated unit, integration, and multiplayer simulation tests.
-
-## Configuration (Environment Variables)
-
-| Variable | Default | Meaning |
-|---|---|---|
-| `PORT` | `3001` | HTTP port |
-| `CLIENT_ORIGIN` | *(empty)* | Allowed browser origins if client is on a different domain |
-| `MAX_PLAYERS` | `13` | Maximum players per room |
-| `SERVE_CLIENT` | `true` | Serve client build from the Node server |
-
-## Architecture
-
-- `client/`: React + Vite frontend application, sound synthesizer, and WebRTC engine.
-- `server/`: Express + Socket.IO real-time backend engine.
-- `scripts/`: Auto-build and startup orchestration.
+*(Runs 53 automated tests covering game rules, room isolation, voice signaling, and mentor view security).*
