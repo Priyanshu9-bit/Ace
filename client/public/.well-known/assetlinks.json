@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.onrender.ace_upfx.twa",
+      "sha256_cert_fingerprints": [
+        "01:AB:52:54:03:49:54:6D:09:F6:71:CB:20:E8:C5:55:2D:14:28:EF:60:6F:6C:5D:A3:6D:C4:E9:AF:45:7D:6B"
+      ]
+    }
+  }
+]

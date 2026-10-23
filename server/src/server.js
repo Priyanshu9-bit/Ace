@@ -40,10 +40,12 @@ function createGameServer(config) {
   });
 
   app.get('/.well-known/assetlinks.json', (req, res) => {
-    const assetlinksPath = path.join(CLIENT_DIST, '.well-known', 'assetlinks.json');
-    if (fs.existsSync(assetlinksPath)) {
+    const assetlinksDist = path.join(CLIENT_DIST, '.well-known', 'assetlinks.json');
+    const assetlinksPublic = path.resolve(__dirname, '..', '..', 'client', 'public', '.well-known', 'assetlinks.json');
+    const target = fs.existsSync(assetlinksDist) ? assetlinksDist : (fs.existsSync(assetlinksPublic) ? assetlinksPublic : null);
+    if (target) {
       res.setHeader('Content-Type', 'application/json');
-      return res.sendFile(assetlinksPath);
+      return res.sendFile(target);
     }
     res.status(404).json({ error: 'Asset links not yet configured' });
   });
