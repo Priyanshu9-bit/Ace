@@ -2,14 +2,18 @@
 /**
  * Gadhaa Service Worker for offline shell caching and PWA standalone experience.
  */
-const CACHE_NAME = 'gadha-cache-v2';
+const CACHE_NAME = 'gadha-cache-v3';
 
 const STATIC_ASSETS = [
   '/',
   '/index.html',
+  '/offline.html',
   '/manifest.webmanifest',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
+  '/icons/icon-maskable-192.png',
+  '/icons/icon-maskable-512.png',
+  '/icons/icon-monochrome.png',
   '/icons/apple-touch-icon.png',
   '/sounds/gadha.mp3',
 ];
@@ -66,7 +70,10 @@ self.addEventListener('fetch', (event) => {
         })
         .catch(async () => {
           const cached = await caches.match('/index.html');
-          return cached || fetch(req);
+          if (cached) return cached;
+          const offlinePage = await caches.match('/offline.html');
+          if (offlinePage) return offlinePage;
+          return fetch(req);
         })
     );
     return;

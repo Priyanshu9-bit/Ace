@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0b3b24" />
+    <title>Gadhaa · Offline</title>
+    <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body {
+        background: radial-gradient(circle at center, #0f3b26 0%, #06150e 100%);
+        color: #e6f0eb;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        text-align: center;
+      }
+      .card {
+        background: rgba(11, 40, 26, 0.7);
+        border: 2px solid #ebc350;
+        border-radius: 20px;
+        padding: 40px 28px;
+        max-width: 440px;
+        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(10px);
+      }
+      .logo {
+        width: 96px;
+        height: 96px;
+        border-radius: 50%;
+        margin-bottom: 20px;
+        border: 3px solid #ebc350;
+      }
+      h1 {
+        color: #ebc350;
+        font-size: 26px;
+        margin-bottom: 8px;
+        letter-spacing: 1px;
+      }
+      .sub {
+        color: #8fa89b;
+        font-size: 15px;
+        margin-bottom: 20px;
+      }
+      p {
+        font-size: 15px;
+        line-height: 1.5;
+        color: #c9dbd3;
+        margin-bottom: 28px;
+      }
+      .retry-btn {
+        background: linear-gradient(135deg, #ebc350 0%, #c49a2c 100%);
+        color: #06150e;
+        border: none;
+        padding: 14px 28px;
+        font-size: 16px;
+        font-weight: 700;
+        border-radius: 999px;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        box-shadow: 0 4px 14px rgba(235, 195, 80, 0.4);
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+      }
+      .retry-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(235, 195, 80, 0.6);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <img src="/icons/icon-192.png" alt="Gadhaa Logo" class="logo" />
+      <h1>GADHAA · ଗଧା</h1>
+      <div class="sub">Traditional Odia Card Game</div>
+      <p>
+        You are currently offline.<br />
+        Please check your internet connection to rejoin the multiplayer card table.<br />
+        <span style="display:block; margin-top: 8px; font-size: 13px; color: #a4beae;">
+          ଇଣ୍ଟରନେଟ୍ ସଂଯୋଗ ଯାଞ୍ଚ କରି ପୁନଃ ଚେଷ୍ଟା କରନ୍ତୁ।
+        </span>
+      </p>
+      <button class="retry-btn" onclick="window.location.reload()">
+        <span>↻ Retry Connection</span>
+      </button>
+    </div>
+  </body>
+</html>
