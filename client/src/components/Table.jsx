@@ -78,7 +78,7 @@ function TurnTimerRing({ startedAt, timeoutMs }) {
   );
 }
 
-export default function Table({ view, t, speakingMap, gadhaBraying }) {
+export default function Table({ view, t, speakingMap, gadhaBraying, onRequestGuide }) {
   const { players, you, game } = view;
   const n = players.length;
   const viewerSeat = you.seat >= 0 ? you.seat : 0;
@@ -252,7 +252,41 @@ export default function Table({ view, t, speakingMap, gadhaBraying }) {
             <div className="seat-pod-stats">
               <span>🂠 {p.cardCount}</span>
               {p.cardCount === 0 && <span className="badge-safe">✓ {t('safe')}</span>}
+              {view.game?.guiding && view.game.guiding.targetId === p.id && (
+                <span className="badge-pod-guiding" title={t('guidingPlayer', { name: p.name })}>
+                  🤝 {t('guide')}
+                </span>
+              )}
+              {p.seat === you.seat && view.game?.guidedBy && (
+                <span className="badge-pod-guided" title={t('guidedBy', { name: view.game.guidedBy.name })}>
+                  🤝 {view.game.guidedBy.name}
+                </span>
+              )}
+              {view.roomStats?.scores?.[p.id]?.gadhaCount > 0 && (
+                <span className="badge-pod-gadha" title={`${t('timesGadha')}: ${view.roomStats.scores[p.id].gadhaCount}`}>
+                  🫏 {view.roomStats.scores[p.id].gadhaCount}
+                </span>
+              )}
             </div>
+
+            {/* Safe player action: quick guide button on pod */}
+            {view.phase === 'playing' &&
+              you.seat >= 0 &&
+              !you.isSpectator &&
+              view.game?.hand?.length === 0 &&
+              p.cardCount > 0 &&
+              p.seat !== you.seat &&
+              !view.game?.guiding &&
+              onRequestGuide && (
+                <button
+                  type="button"
+                  className="pod-guide-btn"
+                  onClick={() => onRequestGuide(p.id)}
+                  title={t('requestToGuide', { name: p.name })}
+                >
+                  {view.outgoingGuideRequest?.targetId === p.id ? '⏳' : '👁️'} {t('guide')}
+                </button>
+              )}
             {!p.connected && (
               <div style={{ color: '#ff9999', fontSize: '10px' }}>
                 {p.left ? t('left') : t('offline')}

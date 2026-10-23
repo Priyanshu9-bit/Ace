@@ -26,6 +26,10 @@ function buildView(room, viewerId, maxPlayers) {
     turnStartedAt: room.turnStartedAt || null,
     turnTimeoutMs: room.turnTimeoutMs || 20000,
     iceServers: room.iceServers || [],
+    roomStats: {
+      gamesPlayed: room.gamesPlayed || 0,
+      scores: room.stats || {},
+    },
     you: {
       id: viewerId,
       seat: viewerSeat,
@@ -50,15 +54,63 @@ function buildView(room, viewerId, maxPlayers) {
       isHost: p.id === room.hostId,
       connected: p.connected,
       left: p.left,
-      voice: p.voice || { active: false, muted: false },
+      voice: p.voice
+        ? { active: !!p.voice.active, muted: !!p.voice.muted, targetId: p.voice.targetId || 'all' }
+        : { active: false, muted: false, targetId: 'all' },
       cardCount: game ? game.hands[seat].length : 0,
       pileCount: game ? game.piles[seat].length : 0,
     })),
+    incomingGuideRequest: room.guideRequests && room.guideRequests[viewerId]
+      ? {
+          fromId: room.guideRequests[viewerId].fromId,
+          fromName: room.guideRequests[viewerId].fromName,
+          fromAvatar: room.guideRequests[viewerId].fromAvatar || '🫏',
+        }
+      : null,
+    outgoingGuideRequest: room.guideRequests
+      ? (() => {
+          const req = Object.values(room.guideRequests).find((r) => r.fromId === viewerId);
+          return req ? { targetId: req.targetId, targetName: req.targetName } : null;
+        })()
+      : null,
     game: null,
   };
 
   if (game) {
     const resolving = game.phase === 'resolving';
+
+    let guiding = null;
+    const guidedTargetId = room.guideMap ? room.guideMap[viewerId] : null;
+    if (guidedTargetId) {
+      const guidedTargetSeat = room.players.findIndex((p) => p.id === guidedTargetId);
+      if (guidedTargetSeat >= 0 && game.hands[guidedTargetSeat].length > 0) {
+        guiding = {
+          targetId: guidedTargetId,
+          targetSeat: guidedTargetSeat,
+          targetName: room.players[guidedTargetSeat].name,
+          targetAvatar: room.players[guidedTargetSeat].avatar || '🫏',
+          cardCount: game.hands[guidedTargetSeat].length,
+          hand: game.hands[guidedTargetSeat].map(publicCard),
+          legal: game.legalCards(guidedTargetSeat).map((c) => c.id),
+        };
+      }
+    }
+
+    let guidedBy = null;
+    const mentorId = room.guideMap
+      ? Object.keys(room.guideMap).find((sId) => room.guideMap[sId] === viewerId)
+      : null;
+    if (mentorId) {
+      const mentorPlayer = room.players.find((p) => p.id === mentorId);
+      if (mentorPlayer) {
+        guidedBy = {
+          id: mentorPlayer.id,
+          name: mentorPlayer.name,
+          avatar: mentorPlayer.avatar || '🫏',
+        };
+      }
+    }
+
     view.game = {
       round: game.round,
       turnSeat: game.phase === 'playing' ? game.turnSeat : null,
@@ -84,6 +136,8 @@ function buildView(room, viewerId, maxPlayers) {
         : null,
       hand: viewerSeat >= 0 ? game.hands[viewerSeat].map(publicCard) : [],
       legal: viewerSeat >= 0 ? game.legalCards(viewerSeat).map((c) => c.id) : [],
+      guiding,
+      guidedBy,
       result: game.result
         ? {
             gadhaSeat: game.result.gadhaSeat,

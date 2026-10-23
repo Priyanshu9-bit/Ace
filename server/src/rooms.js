@@ -78,6 +78,10 @@ class RoomManager {
       turnTimeoutMs: this.config.autoplayDelayMs,
       phase: 'lobby', // 'lobby' | 'playing' | 'finished'
       game: null,
+      guideMap: {}, // [safePlayerId]: targetPlayerId (safe player viewing target player cards)
+      guideRequests: {}, // [targetPlayerId]: { fromId, fromName, fromAvatar, targetId, targetName, timestamp }
+      stats: {}, // { [playerId]: { gadhaCount: 0, winCount: 0, gamesPlayed: 0 } }
+      gamesPlayed: 0,
       timers: {},
       lastActivity: Date.now(),
     };
@@ -203,6 +207,7 @@ class RoomManager {
       player.graceTimer = setTimeout(() => this._removeFromLobby(room, player), this.config.lobbyGraceMs);
       player.graceTimer.unref?.();
     }
+    this._cleanGuideState(room, player);
     this._afterPlayerAbsent(room, player);
     this._changed(room);
   }
@@ -222,8 +227,25 @@ class RoomManager {
     player.left = true;
     player.connected = false;
     player.socketId = null;
+    this._cleanGuideState(room, player);
     this._afterPlayerAbsent(room, player);
     this._changed(room);
+  }
+
+  _cleanGuideState(room, player) {
+    if (!room || !player) return;
+    if (room.guideMap) {
+      delete room.guideMap[player.id];
+      for (const [k, v] of Object.entries(room.guideMap)) {
+        if (v === player.id) delete room.guideMap[k];
+      }
+    }
+    if (room.guideRequests) {
+      delete room.guideRequests[player.id];
+      for (const [k, v] of Object.entries(room.guideRequests)) {
+        if (v.fromId === player.id) delete room.guideRequests[k];
+      }
+    }
   }
 
   // ---------- game flow ----------
@@ -238,6 +260,8 @@ class RoomManager {
     }
     room.game = new GadhaGame(room.players.length);
     room.phase = 'playing';
+    room.guideMap = {};
+    room.guideRequests = {};
     room.turnStartedAt = Date.now();
     this._scheduleAutoplay(room);
     this._changed(room);
@@ -255,10 +279,98 @@ class RoomManager {
     this._clearTimers(room);
     room.game = null;
     room.phase = 'lobby';
+    room.guideMap = {};
+    room.guideRequests = {};
     for (const p of [...room.players]) {
       if (p.left || !p.connected) this._dropPlayer(room, p);
     }
     if (room.players.length > 0) this._changed(room);
+  }
+
+  requestGuide(room, safePlayer, targetPlayerId) {
+    if (room.phase !== 'playing' || !room.game) {
+      throw new GadhaError('BAD_PHASE', 'Guiding is only available during active play');
+    }
+    const safeSeat = room.players.indexOf(safePlayer);
+    if (safeSeat < 0) {
+      throw new GadhaError('NOT_PLAYER', 'Player not found in room');
+    }
+    // Requester must be safe (0 cards held)
+    if (room.game.hands[safeSeat].length > 0) {
+      throw new GadhaError('NOT_SAFE_PLAYER', 'Only players who have safely finished their cards can request to guide');
+    }
+    const target = room.players.find((p) => p.id === targetPlayerId && p.connected && !p.left);
+    if (!target) {
+      throw new GadhaError('TARGET_NOT_FOUND', 'Target player not found or offline');
+    }
+    const targetSeat = room.players.indexOf(target);
+    if (targetSeat === safeSeat) {
+      throw new GadhaError('CANNOT_GUIDE_SELF', 'Cannot guide yourself');
+    }
+    // Target player must still be actively playing (holds 1+ cards)
+    if (room.game.hands[targetSeat].length === 0) {
+      throw new GadhaError('TARGET_NOT_PLAYING', 'That player has already finished their cards');
+    }
+
+    if (!room.guideRequests) room.guideRequests = {};
+    room.guideRequests[target.id] = {
+      fromId: safePlayer.id,
+      fromName: safePlayer.name,
+      fromAvatar: safePlayer.avatar || '🫏',
+      targetId: target.id,
+      targetName: target.name,
+      timestamp: Date.now(),
+    };
+    this._changed(room);
+    return { ok: true };
+  }
+
+  respondGuide(room, targetPlayer, fromId, accept) {
+    if (room.phase !== 'playing' || !room.game) {
+      throw new GadhaError('BAD_PHASE', 'Game is not in playing phase');
+    }
+    if (!room.guideRequests || !room.guideRequests[targetPlayer.id]) {
+      throw new GadhaError('NO_GUIDE_REQUEST', 'No pending guide request found');
+    }
+    const req = room.guideRequests[targetPlayer.id];
+    if (req.fromId !== fromId) {
+      throw new GadhaError('NO_GUIDE_REQUEST', 'Request does not match sender');
+    }
+    delete room.guideRequests[targetPlayer.id];
+
+    if (accept) {
+      const fromSeat = room.players.findIndex((p) => p.id === fromId && p.connected && !p.left);
+      const targetSeat = room.players.indexOf(targetPlayer);
+      if (
+        fromSeat >= 0 &&
+        targetSeat >= 0 &&
+        room.game.hands[fromSeat].length === 0 &&
+        room.game.hands[targetSeat].length > 0
+      ) {
+        if (!room.guideMap) room.guideMap = {};
+        room.guideMap[fromId] = targetPlayer.id;
+      }
+    }
+    this._changed(room);
+    return { ok: true, accepted: !!accept };
+  }
+
+  cancelGuideRequest(room, safePlayer) {
+    if (room.guideRequests) {
+      for (const [k, v] of Object.entries(room.guideRequests)) {
+        if (v.fromId === safePlayer.id) {
+          delete room.guideRequests[k];
+        }
+      }
+      this._changed(room);
+    }
+    return { ok: true };
+  }
+
+  stopGuiding(room, player) {
+    this._cleanGuideState(room, player);
+    this._changed(room);
+    return { ok: true };
   }
 
   // ---------- internals ----------
@@ -290,11 +402,44 @@ class RoomManager {
     room.game.resolveTrick();
     if (room.game.phase === 'finished') {
       room.phase = 'finished';
+      room.guideMap = {};
+      room.guideRequests = {};
+      this._recordGameResult(room);
     } else {
       room.turnStartedAt = Date.now();
+      if (room.guideMap) {
+        for (const [safeId, targetId] of Object.entries(room.guideMap)) {
+          const tSeat = room.players.findIndex((p) => p.id === targetId);
+          if (tSeat < 0 || (room.game.hands[tSeat] && room.game.hands[tSeat].length === 0)) {
+            delete room.guideMap[safeId];
+          }
+        }
+      }
     }
     this._scheduleAutoplay(room);
     this._changed(room);
+  }
+
+  _recordGameResult(room) {
+    if (!room.game || !room.game.result || room.game._recorded) return;
+    room.game._recorded = true;
+    room.gamesPlayed = (room.gamesPlayed || 0) + 1;
+    if (!room.stats) room.stats = {};
+
+    const gadhaSeat = room.game.result.gadhaSeat;
+    for (let seat = 0; seat < room.players.length; seat++) {
+      const p = room.players[seat];
+      if (!p) continue;
+      if (!room.stats[p.id]) {
+        room.stats[p.id] = { gadhaCount: 0, winCount: 0, gamesPlayed: 0 };
+      }
+      room.stats[p.id].gamesPlayed += 1;
+      if (seat === gadhaSeat) {
+        room.stats[p.id].gadhaCount += 1;
+      } else {
+        room.stats[p.id].winCount += 1;
+      }
+    }
   }
 
   /** If the player whose turn it is is absent, play a random legal card for them after a delay. */
@@ -341,6 +486,7 @@ class RoomManager {
   /** Remove a player entirely (only safe when no game is in progress). */
   _dropPlayer(room, player) {
     clearTimeout(player.graceTimer);
+    this._cleanGuideState(room, player);
     room.players = room.players.filter((p) => p !== player);
     if (room.players.length === 0) {
       this._clearTimers(room);

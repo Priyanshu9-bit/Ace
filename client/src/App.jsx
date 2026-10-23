@@ -9,9 +9,13 @@ import Hand from './components/Hand.jsx';
 import ResultScreen from './components/ResultScreen.jsx';
 import RulesModal from './components/RulesModal.jsx';
 import InstallModal from './components/InstallModal.jsx';
+import StatsModal from './components/StatsModal.jsx';
 import VoiceBar from './components/VoiceBar.jsx';
+import GuideModal from './components/GuideModal.jsx';
+import MentorPanel from './components/MentorPanel.jsx';
 import WelcomeAnimation from './components/WelcomeAnimation.jsx';
 import { VoiceManager } from './voice.js';
+import { loadPlayerStats, recordGameResult, clearPlayerStats } from './stats.js';
 
 function readStorage(key, fallback) {
   try {
@@ -77,6 +81,8 @@ export default function App() {
   const [showResult, setShowResult] = useState(false);
   const [showRules, setShowRules] = useState(false);
   const [showInstall, setShowInstall] = useState(false);
+  const [showStats, setShowStats] = useState(false);
+  const [playerStats, setPlayerStats] = useState(() => loadPlayerStats());
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [isStandalone, setIsStandalone] = useState(() => {
     if (typeof window === 'undefined') return false;
@@ -261,6 +267,20 @@ export default function App() {
     return () => clearTimeout(id);
   }, [finished]);
 
+  // Record stats when game finishes
+  useEffect(() => {
+    if (view?.phase === 'finished' && view?.game?.result && !view?.you?.isSpectator) {
+      const updated = recordGameResult(
+        view.code,
+        view.you.id,
+        view.game.result,
+        view.players,
+        view.you.seat
+      );
+      setPlayerStats({ ...updated });
+    }
+  }, [view?.phase, view?.game?.result, view?.you?.id, view?.you?.seat, view?.you?.isSpectator, view?.code, view?.players]);
+
   // ----- actions -----
   async function run(fn) {
     setBusy(true);
@@ -351,6 +371,40 @@ export default function App() {
     voiceManager.toggleDeafen();
   }
 
+  function handleSetVoiceTarget(targetId) {
+    voiceManager.setVoiceTarget(targetId);
+  }
+
+  async function handleRequestGuide(targetId) {
+    const res = await run(() => request('guide:request', { targetId }));
+    if (!res.ok) {
+      fail(res);
+    } else {
+      const targetPlayer = view?.players?.find((p) => p.id === targetId);
+      setToast({ key: 'requestSent', vars: { name: targetPlayer?.name || '' } });
+    }
+  }
+
+  async function handleRespondGuide(fromId, accept) {
+    const res = await run(() => request('guide:respond', { fromId, accept }));
+    if (!res.ok) {
+      fail(res);
+    } else if (accept) {
+      setToast({ key: 'sharingHandWith', vars: { name: view?.incomingGuideRequest?.fromName || '' } });
+    } else {
+      setToast({ key: 'requestDeclined', vars: { name: view?.incomingGuideRequest?.fromName || '' } });
+    }
+  }
+
+  async function handleCancelGuideRequest() {
+    await run(() => request('guide:cancel', {}));
+  }
+
+  async function handleStopGuiding() {
+    await run(() => request('guide:stop', {}));
+    setToast({ key: 'sharingStopped' });
+  }
+
   async function startGame() {
     const res = await run(() => request('game:start'));
     if (!res.ok) fail(res);
@@ -376,7 +430,9 @@ export default function App() {
   }
 
   // ----- render -----
-  const toastText = toast ? (toast.error ? translateError(lang, toast.error) : t(toast.key)) : '';
+  const toastText = toast
+    ? (toast.error ? translateError(lang, toast.error) : t(toast.key, toast.vars))
+    : '';
   const inGame = view && (view.phase === 'playing' || view.phase === 'finished');
   const connecting = restoring || (conn === 'connecting' && !view);
 
@@ -403,11 +459,14 @@ export default function App() {
         initialCode={initialCode}
         onOpenRules={() => setShowRules(true)}
         onOpenInstall={() => setShowInstall(true)}
+        onOpenStats={() => setShowStats(true)}
+        stats={playerStats}
         isStandalone={isStandalone}
       />
     );
   } else if (view.phase === 'lobby') {
-    const activeVoiceCount = [...view.players, ...(view.spectators || [])].filter((p) => p.voice?.active).length;
+    const allVoicePeers = [...view.players, ...(view.spectators || [])];
+    const activeVoiceCount = allVoicePeers.filter((p) => p.voice?.active).length;
     const otherActivePeersCount = Math.max(0, activeVoiceCount - (voiceState.active ? 1 : 0));
     const voiceBarElement = (
       <VoiceBar
@@ -418,6 +477,11 @@ export default function App() {
         onLeave={handleLeaveVoice}
         onToggleMute={handleToggleVoiceMute}
         onToggleDeafen={handleToggleVoiceDeafen}
+        onSetVoiceTarget={handleSetVoiceTarget}
+        peers={allVoicePeers}
+        youId={view.you?.id}
+        guidingTarget={null}
+        guidedBy={null}
         t={t}
         isSupported={VoiceManager.isSupported()}
         busy={voiceBusy}
@@ -434,13 +498,15 @@ export default function App() {
         onSetMaxPlayers={setMaxPlayers}
         onSetAvatar={setPlayerAvatar}
         onOpenRules={() => setShowRules(true)}
+        onOpenStats={() => setShowStats(true)}
         speakingMap={speakingMap}
         voiceBar={voiceBarElement}
       />
     );
   } else if (inGame && view.game) {
     const myTurn = view.game.turnSeat !== null && view.game.turnSeat === view.you.seat;
-    const activeVoiceCount = [...view.players, ...(view.spectators || [])].filter((p) => p.voice?.active).length;
+    const allVoicePeers = [...view.players, ...(view.spectators || [])];
+    const activeVoiceCount = allVoicePeers.filter((p) => p.voice?.active).length;
     const otherActivePeersCount = Math.max(0, activeVoiceCount - (voiceState.active ? 1 : 0));
     const voiceBarElement = (
       <VoiceBar
@@ -451,6 +517,11 @@ export default function App() {
         onLeave={handleLeaveVoice}
         onToggleMute={handleToggleVoiceMute}
         onToggleDeafen={handleToggleVoiceDeafen}
+        onSetVoiceTarget={handleSetVoiceTarget}
+        peers={allVoicePeers}
+        youId={view.you?.id}
+        guidingTarget={view.game?.guiding}
+        guidedBy={view.game?.guidedBy}
         t={t}
         isSupported={VoiceManager.isSupported()}
         busy={voiceBusy}
@@ -488,7 +559,13 @@ export default function App() {
           </div>
         </div>
 
-        <Table view={view} t={t} speakingMap={speakingMap} gadhaBraying={gadhaBraying} />
+        <Table
+          view={view}
+          t={t}
+          speakingMap={speakingMap}
+          gadhaBraying={gadhaBraying}
+          onRequestGuide={handleRequestGuide}
+        />
 
         {view.you.isSpectator ? (
           <div className="spectator-hand-panel">
@@ -500,16 +577,62 @@ export default function App() {
               {view.game.turnSeat !== null ? t('turnOf', { name: view.players[view.game.turnSeat]?.name || '...' }) : ''}
             </p>
           </div>
-        ) : (
-          <Hand
-            hand={view.game.hand}
-            legal={view.game.legal}
-            leadSuit={view.game.leadSuit}
-            myTurn={myTurn}
-            onPlay={playCard}
-            onIllegal={() => setToast({ error: 'MUST_FOLLOW_SUIT' })}
+        ) : view.game.hand.length === 0 ? (
+          <MentorPanel
+            guiding={view.game.guiding}
+            outgoingRequest={view.outgoingGuideRequest}
+            playingPlayers={view.players.filter(
+              (p) => p.connected && !p.left && p.cardCount > 0 && p.seat !== view.you.seat
+            )}
+            onRequestGuide={handleRequestGuide}
+            onCancelRequest={handleCancelGuideRequest}
+            onStopGuiding={handleStopGuiding}
+            onWhisperTo={handleSetVoiceTarget}
+            voiceActive={voiceState.active}
             t={t}
           />
+        ) : (
+          <div className="player-hand-container">
+            {view.game.guidedBy && (
+              <div className="guided-by-banner">
+                <div className="guided-by-info">
+                  <span className="guided-by-avatar">{view.game.guidedBy.avatar || '🫏'}</span>
+                  <span className="guided-by-text">
+                    {t('guidedBy', { name: view.game.guidedBy.name })}
+                  </span>
+                </div>
+                <div className="guided-by-actions">
+                  {voiceState.active && (
+                    <button
+                      type="button"
+                      className="btn btn-small btn-whisper"
+                      onClick={() => handleSetVoiceTarget(view.game.guidedBy.id)}
+                      title={t('whisperTarget', { name: view.game.guidedBy.name })}
+                    >
+                      🎙️ {t('whisperTarget', { name: view.game.guidedBy.name })}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className="btn btn-small btn-stop-guide"
+                    onClick={handleStopGuiding}
+                    title={t('stopSharing')}
+                  >
+                    ✕ {t('stopSharing')}
+                  </button>
+                </div>
+              </div>
+            )}
+            <Hand
+              hand={view.game.hand}
+              legal={view.game.legal}
+              leadSuit={view.game.leadSuit}
+              myTurn={myTurn}
+              onPlay={playCard}
+              onIllegal={() => setToast({ error: 'MUST_FOLLOW_SUIT' })}
+              t={t}
+            />
+          </div>
         )}
 
         {finished && showResult && view.game.result && (
@@ -521,6 +644,8 @@ export default function App() {
             onPlayGadhaSound={broadcastGadhaSound}
             onNewGame={newGame}
             onLeave={leaveRoom}
+            playerStats={playerStats}
+            onOpenStats={() => setShowStats(true)}
           />
         )}
       </main>
@@ -543,6 +668,15 @@ export default function App() {
         </span>
 
         <span className="topbar-actions">
+          <button
+            type="button"
+            className="pill-btn stats-pill-btn"
+            onClick={() => setShowStats(true)}
+            title={t('viewStats')}
+            aria-label={t('viewStats')}
+          >
+            📊 <span className="stats-pill-badge">{playerStats.gadhaCount} 🫏</span>
+          </button>
           {!isStandalone && (
             <button
               type="button"
@@ -605,6 +739,22 @@ export default function App() {
         <RulesModal t={t} onClose={() => setShowRules(false)} />
       )}
 
+      {showStats && (
+        <StatsModal
+          stats={playerStats}
+          view={view}
+          playerName={view?.you?.name || readStorage('gadha.name', '')}
+          playerAvatar={view?.you?.avatar || avatar}
+          t={t}
+          onClose={() => setShowStats(false)}
+          onResetStats={() => {
+            const fresh = clearPlayerStats();
+            setPlayerStats(fresh);
+            setToast({ key: 'resetSuccess' });
+          }}
+        />
+      )}
+
       {showInstall && (
         <InstallModal
           t={t}
@@ -613,6 +763,15 @@ export default function App() {
           canPrompt={!!deferredPrompt}
           isIOS={isIOS}
           isStandalone={isStandalone}
+        />
+      )}
+
+      {view?.incomingGuideRequest && (
+        <GuideModal
+          request={view.incomingGuideRequest}
+          onAccept={() => handleRespondGuide(view.incomingGuideRequest.fromId, true)}
+          onDecline={() => handleRespondGuide(view.incomingGuideRequest.fromId, false)}
+          t={t}
         />
       )}
 

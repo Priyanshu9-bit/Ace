@@ -10,6 +10,7 @@ export default function Lobby({
   onSetMaxPlayers,
   onSetAvatar,
   onOpenRules,
+  onOpenStats,
   speakingMap,
   voiceBar,
 }) {
@@ -169,13 +170,45 @@ export default function Lobby({
         </div>
       )}
 
+      {/* Room Donkey Tally if games played in this room */}
+      {view.roomStats && view.roomStats.gamesPlayed > 0 && (
+        <div className="lobby-scoreboard-card">
+          <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+            <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-gold)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>
+              🫏 {t('roomScoreboard')}
+            </span>
+            <span className="field-badge">{view.roomStats.gamesPlayed} {t('matches')}</span>
+          </div>
+          <div className="lobby-scoreboard-grid">
+            {players.map((p) => {
+              const count = view.roomStats?.scores?.[p.id]?.gadhaCount || 0;
+              const isYou = p.id === you.id;
+              return (
+                <div key={p.id} className={`lobby-scoreboard-pill ${count > 0 ? 'has-gadha' : ''} ${isYou ? 'is-me' : ''}`}>
+                  <span>{p.avatar || '🫏'}</span>
+                  <span className="scoreboard-pill-name">{p.name}</span>
+                  <span className="scoreboard-pill-count">{count > 0 ? `🫏 ${count}` : `✓ ${t('safe')}`}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
         <h3 className="section-title" style={{ margin: 0 }}>
           {t('players')} ({players.length}/{maxPlayers})
         </h3>
-        <button type="button" className="btn btn-ghost btn-small" onClick={onOpenRules}>
-          📖 {t('howToPlay')}
-        </button>
+        <div className="row" style={{ gap: '6px' }}>
+          {onOpenStats && (
+            <button type="button" className="btn btn-ghost btn-small" onClick={onOpenStats} title={t('viewStats')}>
+              📊 {t('stats')}
+            </button>
+          )}
+          <button type="button" className="btn btn-ghost btn-small" onClick={onOpenRules}>
+            📖 {t('howToPlay')}
+          </button>
+        </div>
       </div>
 
       <ul className="player-list">
@@ -184,6 +217,7 @@ export default function Lobby({
           const isSpeaking = speakingMap?.get(p.id) || (isYou && speakingMap?.get('me'));
           const isVoiceActive = p.voice?.active;
           const isVoiceMuted = p.voice?.muted;
+          const pRoomGadha = view.roomStats?.scores?.[p.id]?.gadhaCount || 0;
 
           return (
             <li
@@ -197,6 +231,11 @@ export default function Lobby({
                 {p.name}
               </div>
               <div className="row" style={{ gap: '4px', alignItems: 'center' }}>
+                {pRoomGadha > 0 && (
+                  <span className="badge badge-gadha-tally" title={`${t('timesGadha')}: ${pRoomGadha}`}>
+                    🫏 {pRoomGadha}
+                  </span>
+                )}
                 {isVoiceActive && (
                   <span
                     className={`lobby-voice-icon ${isVoiceMuted ? 'muted' : isSpeaking ? 'speaking' : 'active'}`}

@@ -247,6 +247,47 @@ function registerSocketHandlers(io, manager, config) {
       return { ok: true };
     });
 
+    on('voice:setTarget', ({ targetId }) => {
+      const { room, player } = context();
+      if (!player.voice) player.voice = { active: false, muted: false };
+      player.voice.targetId = targetId || 'all';
+      emitToRoom(
+        room,
+        'voice:target-change',
+        { peerId: player.id, targetId: player.voice.targetId },
+        socket.id
+      );
+      return { targetId: player.voice.targetId };
+    });
+
+    on('guide:request', ({ targetId }) => {
+      const { room, player, isSpectator } = context();
+      if (isSpectator) throw new GadhaError('NOT_PLAYER', 'Spectators cannot guide');
+      if (!targetId || typeof targetId !== 'string') throw new GadhaError('BAD_TARGET', 'Invalid target player');
+      manager.requestGuide(room, player, targetId);
+      return { ok: true };
+    });
+
+    on('guide:respond', ({ fromId, accept }) => {
+      const { room, player, isSpectator } = context();
+      if (isSpectator) throw new GadhaError('NOT_PLAYER', 'Spectators cannot respond to guide');
+      if (!fromId || typeof fromId !== 'string') throw new GadhaError('BAD_REQUESTER', 'Invalid requester');
+      const res = manager.respondGuide(room, player, fromId, !!accept);
+      return { ok: true, accepted: res.accepted };
+    });
+
+    on('guide:cancel', () => {
+      const { room, player } = context();
+      manager.cancelGuideRequest(room, player);
+      return { ok: true };
+    });
+
+    on('guide:stop', () => {
+      const { room, player } = context();
+      manager.stopGuiding(room, player);
+      return { ok: true };
+    });
+
     socket.on('disconnect', () => {
       const room = socket.data.code ? manager.getRoom(socket.data.code) : null;
       const player = room

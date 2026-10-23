@@ -11,6 +11,8 @@ export class VoiceManager {
     this.active = false;
     this.isMuted = false;
     this.isDeafened = false;
+    this.voiceTarget = 'all'; // 'all' | targetPeerId
+    this.peerTargets = new Map(); // peerId -> targetPeerId
 
     this.localStream = null;
     this.peers = new Map(); // peerId -> { pc, audioEl, analyser, iceQueue }
@@ -63,11 +65,13 @@ export class VoiceManager {
     this._onPeerLeft = (data) => this._handlePeerLeft(data);
     this._onPeerMute = (data) => this._handlePeerMute(data);
     this._onSignal = (data) => this._handleSignal(data);
+    this._onTargetChange = (data) => this._handleTargetChange(data);
 
     this.socket.on('voice:peer-joined', this._onPeerJoined);
     this.socket.on('voice:peer-left', this._onPeerLeft);
     this.socket.on('voice:peer-mute', this._onPeerMute);
     this.socket.on('voice:signal', this._onSignal);
+    this.socket.on('voice:target-change', this._onTargetChange);
   }
 
   _unbindSocketListeners() {
@@ -76,6 +80,18 @@ export class VoiceManager {
     if (this._onPeerLeft) this.socket.off('voice:peer-left', this._onPeerLeft);
     if (this._onPeerMute) this.socket.off('voice:peer-mute', this._onPeerMute);
     if (this._onSignal) this.socket.off('voice:signal', this._onSignal);
+    if (this._onTargetChange) this.socket.off('voice:target-change', this._onTargetChange);
+  }
+
+  _handleTargetChange({ peerId, targetId }) {
+    if (!peerId) return;
+    this.peerTargets.set(peerId, targetId || 'all');
+    const peer = this.peers.get(peerId);
+    if (peer && peer.audioEl) {
+      const isForMe = !targetId || targetId === 'all' || targetId === this.myPlayerId;
+      peer.audioEl.muted = this.isDeafened || !isForMe;
+    }
+    this._notifyState();
   }
 
   /**
@@ -197,6 +213,8 @@ export class VoiceManager {
       this.request('voice:leave').catch(() => {});
     }
 
+    this.voiceTarget = 'all';
+    this.peerTargets.clear();
     this._notifyState();
     this.onSpeakingChange(new Map());
   }
@@ -214,6 +232,7 @@ export class VoiceManager {
         track.enabled = !this.isMuted;
       }
     }
+    this._applyVoiceTarget();
     if (this.isMuted) {
       this.speaking.set('me', false);
       if (this.myPlayerId) this.speaking.set(this.myPlayerId, false);
@@ -221,6 +240,31 @@ export class VoiceManager {
     }
     this.request('voice:mute', { muted: this.isMuted }).catch(() => {});
     this._notifyState();
+  }
+
+  setVoiceTarget(targetId) {
+    this.voiceTarget = targetId || 'all';
+    this._applyVoiceTarget();
+    if (this.socket && this.active) {
+      this.socket.emit('voice:setTarget', { targetId: this.voiceTarget }, () => {});
+    }
+    this._notifyState();
+  }
+
+  _applyVoiceTarget() {
+    if (!this.active || !this.localStream) return;
+    const audioTrack = this.localStream.getAudioTracks()[0];
+    if (!audioTrack) return;
+    const isTargetAll = !this.voiceTarget || this.voiceTarget === 'all';
+
+    for (const [peerId, peer] of this.peers.entries()) {
+      const shouldSend = !this.isMuted && (isTargetAll || this.voiceTarget === peerId);
+      const senders = peer.pc && peer.pc.getSenders ? peer.pc.getSenders() : [];
+      const audioSender = senders.find((s) => !s.track || s.track.kind === 'audio');
+      if (audioSender && typeof audioSender.replaceTrack === 'function') {
+        audioSender.replaceTrack(shouldSend ? audioTrack : null).catch(() => {});
+      }
+    }
   }
 
   toggleDeafen() {
@@ -232,9 +276,11 @@ export class VoiceManager {
     if (!this.active) return;
     this.isDeafened = !!deafened;
     // Mute/unmute all peer audio elements
-    for (const peer of this.peers.values()) {
+    for (const [peerId, peer] of this.peers.entries()) {
       if (peer.audioEl) {
-        peer.audioEl.muted = this.isDeafened;
+        const peerTarget = this.peerTargets.get(peerId);
+        const isForMe = !peerTarget || peerTarget === 'all' || peerTarget === this.myPlayerId;
+        peer.audioEl.muted = this.isDeafened || !isForMe;
       }
     }
     // Automatically mute microphone when deafened to prevent echo
@@ -261,6 +307,7 @@ export class VoiceManager {
       for (const track of this.localStream.getAudioTracks()) {
         pc.addTrack(track, this.localStream);
       }
+      setTimeout(() => this._applyVoiceTarget(), 0);
     }
 
     // Handle ICE candidates
@@ -499,6 +546,8 @@ export class VoiceManager {
       isMuted: this.isMuted,
       isDeafened: this.isDeafened,
       peerCount: this.peers.size,
+      voiceTarget: this.voiceTarget || 'all',
+      peerTargets: Object.fromEntries(this.peerTargets),
     });
   }
 

@@ -1,7 +1,17 @@
 import React, { useState } from 'react';
 import { sounds } from '../sound.js';
 
-export default function ResultScreen({ view, t, busy, gadhaBraying, onPlayGadhaSound, onNewGame, onLeave }) {
+export default function ResultScreen({
+  view,
+  t,
+  busy,
+  gadhaBraying,
+  onPlayGadhaSound,
+  onNewGame,
+  onLeave,
+  playerStats,
+  onOpenStats,
+}) {
   const { game, players, you } = view;
   const result = game.result;
   const iAmGadha = result.gadhaId === you.id;
@@ -88,10 +98,40 @@ export default function ResultScreen({ view, t, busy, gadhaBraying, onPlayGadhaS
           {t(`reason${result.reason}`)}
         </p>
 
+        {/* Personal Gadha Record Callout */}
+        <div className={`result-stat-banner ${iAmGadha ? 'is-gadha' : 'is-safe'}`}>
+          <div className="result-stat-icon">{iAmGadha ? '🫏' : '👑'}</div>
+          <div className="result-stat-content">
+            <div className="result-stat-main">
+              {iAmGadha
+                ? t('youBecameGadhaCount', { count: playerStats?.gadhaCount || 1 })
+                : t('youEscapedCount', { count: playerStats?.gadhaCount || 0 })}
+            </div>
+            <div className="result-stat-sub">
+              {iAmGadha ? (
+                <>
+                  {view.roomStats?.scores?.[you.id]?.gadhaCount > 0 && (
+                    <span>{t('roomGadhaCount', { n: view.roomStats.scores[you.id].gadhaCount })} · </span>
+                  )}
+                  <span>{t('gadhaRate')}: {playerStats?.totalGames > 0 ? Math.round(((playerStats.gadhaCount || 0) / playerStats.totalGames) * 100) : 0}%</span>
+                </>
+              ) : (
+                <>
+                  <span>🔥 {t('safeStreak')}: {playerStats?.currentSafeStreak || 0} {t('matches')}</span>
+                  {view.roomStats?.scores?.[you.id]?.gadhaCount > 0 && (
+                    <span> · {t('roomGadhaCount', { n: view.roomStats.scores[you.id].gadhaCount })}</span>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+
         <ul className="podium-list">
           {ranked.map((p, idx) => {
             const isGadha = p.id === result.gadhaId;
             const isWinner = idx === 0 && !isGadha;
+            const pRoomGadha = view.roomStats?.scores?.[p.id]?.gadhaCount || 0;
             return (
               <li
                 key={p.id}
@@ -101,6 +141,11 @@ export default function ResultScreen({ view, t, busy, gadhaBraying, onPlayGadhaS
                   {isGadha ? (isBraying ? '🗣️ 🫏 ' : '🫏 ') : isWinner ? '👑 #1 ' : `#${idx + 1} `}
                   {p.name}
                   {p.id === you.id ? ` (${t('you')})` : ''}
+                  {pRoomGadha > 0 && (
+                    <span className="podium-room-badge" title={`${t('timesGadha')}: ${pRoomGadha}`}>
+                      🫏 {pRoomGadha}
+                    </span>
+                  )}
                 </span>
                 <span>
                   {isGadha ? (
@@ -131,6 +176,11 @@ export default function ResultScreen({ view, t, busy, gadhaBraying, onPlayGadhaS
             <p className="muted center" style={{ padding: '6px 0' }}>
               ⏳ {t('waitForHostNew')}
             </p>
+          )}
+          {onOpenStats && (
+            <button type="button" className="btn btn-ghost" onClick={onOpenStats}>
+              📊 {t('viewStats')}
+            </button>
           )}
           <button type="button" className="btn btn-ghost" onClick={onLeave} disabled={busy}>
             {t('leaveRoom')}

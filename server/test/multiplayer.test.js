@@ -546,4 +546,125 @@ test('gadhaSound: emitted by any player and broadcast to all players in the room
   }
 });
 
+test('stats tracking: counts how many times players become Gadha and play games in a room', async () => {
+  const { server, url } = await startTestServer({ trickPauseMs: 0 });
+  try {
+    const { clients } = await setupTable(url, ['Player1', 'Player2']);
+    await clients[0].emit('game:start', {});
+    await Promise.all(clients.map((c) => c.waitFor((v) => v.phase === 'playing')));
+    await playToEnd(clients);
+    await Promise.all(clients.map((c) => c.waitFor((v) => v.phase === 'finished')));
+
+    const result = clients[0].view.game.result;
+    const gadhaId = result.gadhaId;
+    const safeClient = clients.find((c) => c.session.playerId !== gadhaId);
+    const gadhaClient = clients.find((c) => c.session.playerId === gadhaId);
+
+    assert.equal(gadhaClient.view.roomStats.gamesPlayed, 1);
+    assert.equal(gadhaClient.view.roomStats.scores[gadhaId].gadhaCount, 1);
+    assert.equal(safeClient.view.roomStats.scores[safeClient.session.playerId].gadhaCount, 0);
+    assert.equal(safeClient.view.roomStats.scores[safeClient.session.playerId].winCount, 1);
+
+    clients.forEach((c) => c.close());
+  } finally {
+    await server.close();
+  }
+});
+
+test('guiding: safe player can request to view cards of playing player only after approval', async () => {
+  const { server, url } = await startTestServer({ trickPauseMs: 0 });
+  try {
+    const { clients } = await setupTable(url, ['Alice', 'Bob', 'Charlie']);
+    const [alice, bob, charlie] = clients;
+    await alice.emit('game:start', {});
+    await Promise.all(clients.map((c) => c.waitFor((v) => v.phase === 'playing')));
+
+    // At game start, all players have cards. Alice cannot guide anyone (NOT_SAFE_PLAYER).
+    const badReq = await alice.emit('guide:request', { targetId: bob.session.playerId });
+    assert.equal(badReq.error.code, 'NOT_SAFE_PLAYER');
+
+    // Simulate game until one player runs out of cards (becomes safe)
+    // We can directly empty one hand in room.game for testing the guide flow
+    const room = server.manager.rooms.get(alice.session.code);
+    assert.ok(room && room.game);
+    // Give Alice's cards to Charlie so Alice becomes safe (0 cards) and Charlie has cards
+    room.game.hands[0] = [];
+    server.manager.notify(room);
+
+    await alice.waitFor((v) => v.game?.hand?.length === 0);
+    assert.equal(alice.view.game.hand.length, 0);
+
+    // Now Alice is safe. Alice sends a guide request to Bob (who still has cards)
+    const reqRes = await alice.emit('guide:request', { targetId: bob.session.playerId });
+    assert.equal(reqRes.ok, true);
+
+    // Bob receives incoming guide request
+    await bob.waitFor((v) => v.incomingGuideRequest?.fromId === alice.session.playerId);
+    assert.equal(bob.view.incomingGuideRequest.fromName, 'Alice');
+
+    // Alice sees outgoingGuideRequest
+    assert.equal(alice.view.outgoingGuideRequest.targetId, bob.session.playerId);
+
+    // Bob accepts the request
+    const acceptRes = await bob.emit('guide:respond', {
+      fromId: alice.session.playerId,
+      accept: true,
+    });
+    assert.equal(acceptRes.ok, true);
+    assert.equal(acceptRes.accepted, true);
+
+    // Alice's view now includes Bob's cards and legal cards under game.guiding!
+    await alice.waitFor((v) => v.game?.guiding?.targetId === bob.session.playerId);
+    assert.ok(alice.view.game.guiding.hand.length > 0);
+    assert.equal(alice.view.game.guiding.targetName, 'Bob');
+
+    // Bob's view shows he is guided by Alice
+    await bob.waitFor((v) => v.game?.guidedBy?.id === alice.session.playerId);
+    assert.equal(bob.view.game.guidedBy.name, 'Alice');
+
+    // Charlie does NOT see Bob's cards (privacy intact)
+    assert.equal(charlie.view.game.guiding, null);
+
+    // Alice stops guiding
+    const stopRes = await alice.emit('guide:stop');
+    assert.equal(stopRes.ok, true);
+    await alice.waitFor((v) => v.game?.guiding === null);
+    await bob.waitFor((v) => v.game?.guidedBy === null);
+
+    clients.forEach((c) => c.close());
+  } finally {
+    await server.close();
+  }
+});
+
+test('voice:setTarget allows choosing targeted peer for whisper / guiding', async () => {
+  const { server, url } = await startTestServer();
+  try {
+    const { clients } = await setupTable(url, ['Alice', 'Bob']);
+    const [alice, bob] = clients;
+
+    await alice.emit('voice:join', { muted: false });
+    await bob.emit('voice:join', { muted: false });
+
+    let targetChangeEvent = null;
+    bob.socket.on('voice:target-change', (data) => {
+      targetChangeEvent = data;
+    });
+
+    // Alice targets Bob specifically
+    const setRes = await alice.emit('voice:setTarget', { targetId: bob.session.playerId });
+    assert.equal(setRes.ok, true);
+    assert.equal(setRes.targetId, bob.session.playerId);
+
+    await new Promise((r) => setTimeout(r, 60));
+    assert.ok(targetChangeEvent !== null);
+    assert.equal(targetChangeEvent.peerId, alice.session.playerId);
+    assert.equal(targetChangeEvent.targetId, bob.session.playerId);
+
+    clients.forEach((c) => c.close());
+  } finally {
+    await server.close();
+  }
+});
+
 

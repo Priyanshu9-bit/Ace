@@ -21,6 +21,8 @@ export default function Home({
   initialCode,
   onOpenRules,
   onOpenInstall,
+  onOpenStats,
+  stats,
   isStandalone,
 }) {
   const [mode, setMode] = useState(initialCode ? 'join' : 'create'); // 'create' | 'join'
@@ -60,6 +62,47 @@ export default function Home({
         {t('appName')} {t('appName') === 'Gadhaa' && <span className="title-or">ଗଧା</span>}
       </h1>
       <p className="tagline">{t('tagline')}</p>
+
+      {/* Player Stats Quick Record Card */}
+      {onOpenStats && (
+        <div
+          className="home-stats-card"
+          onClick={onOpenStats}
+          role="button"
+          tabIndex={0}
+          title={t('viewStats')}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') onOpenStats();
+          }}
+        >
+          <div className="home-stats-header">
+            <span className="home-stats-title">
+              <span aria-hidden="true">📊</span> {t('yourRecord')}
+            </span>
+            <span className="home-stats-more">{t('viewStats')} →</span>
+          </div>
+          <div className="home-stats-grid">
+            <div className="home-stat-box is-gadha">
+              <span className="home-stat-num">{stats?.gadhaCount || 0}</span>
+              <span className="home-stat-label">🫏 {t('timesGadha')}</span>
+            </div>
+            <div className="home-stat-box is-safe">
+              <span className="home-stat-num">{stats?.escapedCount || 0}</span>
+              <span className="home-stat-label">👑 {t('timesSafe')}</span>
+            </div>
+            <div className="home-stat-box">
+              <span className="home-stat-num">{stats?.totalGames || 0}</span>
+              <span className="home-stat-label">🎮 {t('gamesPlayed')}</span>
+            </div>
+            <div className="home-stat-box">
+              <span className="home-stat-num">
+                {stats?.totalGames > 0 ? Math.round(((stats.gadhaCount || 0) / stats.totalGames) * 100) : 0}%
+              </span>
+              <span className="home-stat-label">📉 {t('gadhaRate')}</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="tab-row" role="tablist">
@@ -196,6 +239,16 @@ export default function Home({
       </form>
 
       <div className="row center" style={{ marginTop: '4px', gap: '8px', flexWrap: 'wrap' }}>
+        {onOpenStats && (
+          <button
+            type="button"
+            className="btn btn-ghost btn-small"
+            style={{ color: 'var(--gold)', borderColor: 'rgba(245, 195, 66, 0.4)' }}
+            onClick={onOpenStats}
+          >
+            📊 {t('stats')}
+          </button>
+        )}
         <button
           type="button"
           className="btn btn-ghost btn-small"
