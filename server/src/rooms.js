@@ -16,22 +16,6 @@ const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no I, O, 0, 1 - eas
 const CODE_LENGTH = 5;
 const LEFT_AUTOPLAY_MS = 800; // a player who left mid-game is auto-played quickly
 
-const BOT_NAMES = [
-  'Robo Kalia',
-  'Bot Balia',
-  'AI Jagannath',
-  'Cyber Bulu',
-  'Smart Tutu',
-  'Robo Chiku',
-  'AI Muna',
-  'Bot Raju',
-  'Robo Pintu',
-  'AI Sambit',
-  'Bot Rakesh',
-  'Cyber Pooja',
-];
-const BOT_AVATARS = ['🤖', '💻', '⚡', '🦾', '👾', '🧠'];
-
 const newId = () => crypto.randomBytes(6).toString('hex');
 const newToken = () => crypto.randomBytes(24).toString('hex');
 
@@ -620,17 +604,20 @@ class RoomManager {
   }
 
   _newBotPlayer(room) {
-    const takenNames = new Set(room.players.map((p) => p.name.toLowerCase()));
-    let name = BOT_NAMES.find((n) => !takenNames.has(n.toLowerCase()));
-    if (!name) {
-      name = `Bot ${crypto.randomInt(100, 999)}`;
+    const taken = new Set(room.players.map((p) => p.name.toLowerCase()));
+    let name = 'Bot 1';
+    for (let i = 1; i <= 20; i++) {
+      const candidate = `Bot ${i}`;
+      if (!taken.has(candidate.toLowerCase())) {
+        name = candidate;
+        break;
+      }
     }
-    const avatar = BOT_AVATARS[crypto.randomInt(BOT_AVATARS.length)];
     return {
       id: 'bot_' + newId(),
       token: 'bot_tok_' + newToken(),
       name,
-      avatar,
+      avatar: '🤖',
       socketId: null,
       connected: true,
       left: false,
