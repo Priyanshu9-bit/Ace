@@ -54,6 +54,7 @@ function buildView(room, viewerId, maxPlayers) {
       isHost: p.id === room.hostId,
       connected: p.connected,
       left: p.left,
+      ...(p.isBot ? { isBot: true } : {}),
       voice: p.voice
         ? { active: !!p.voice.active, muted: !!p.voice.muted, targetId: p.voice.targetId || 'all' }
         : { active: false, muted: false, targetId: 'all' },

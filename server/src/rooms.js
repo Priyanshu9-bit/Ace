@@ -9,11 +9,28 @@ const crypto = require('node:crypto');
 const { GadhaError } = require('./errors');
 const { GadhaGame } = require('./engine/game');
 const { MIN_PLAYERS } = require('./engine/cards');
-const { cleanName, cleanRoomCode, cleanToken, cleanMaxPlayers, cleanAvatar } = require('./validate');
+const { chooseBotMove } = require('./engine/bot');
+const { cleanName, cleanRoomCode, cleanToken, cleanMaxPlayers, cleanAvatar, cleanComputerCount } = require('./validate');
 
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no I, O, 0, 1 - easy to read aloud
 const CODE_LENGTH = 5;
 const LEFT_AUTOPLAY_MS = 800; // a player who left mid-game is auto-played quickly
+
+const BOT_NAMES = [
+  'Robo Kalia',
+  'Bot Balia',
+  'AI Jagannath',
+  'Cyber Bulu',
+  'Smart Tutu',
+  'Robo Chiku',
+  'AI Muna',
+  'Bot Raju',
+  'Robo Pintu',
+  'AI Sambit',
+  'Bot Rakesh',
+  'Cyber Pooja',
+];
+const BOT_AVATARS = ['🤖', '💻', '⚡', '🦾', '👾', '🧠'];
 
 const newId = () => crypto.randomBytes(6).toString('hex');
 const newToken = () => crypto.randomBytes(24).toString('hex');
@@ -88,6 +105,51 @@ class RoomManager {
     this.rooms.set(code, room);
     this._changed(room);
     return { room, player };
+  }
+
+  /**
+   * Start a game with computer players.
+   * Allows 1, 2, 3 (or up to 7) computers to play alongside the host.
+   */
+  playWithComputer(rawName, socketId, rawComputerCount = 3, rawAvatar) {
+    const computerCount = cleanComputerCount(rawComputerCount, 1, 7);
+    const totalPlayers = computerCount + 1;
+    const { room, player } = this.createRoom(rawName, socketId, totalPlayers, rawAvatar);
+    for (let i = 0; i < computerCount; i++) {
+      const bot = this._newBotPlayer(room);
+      room.players.push(bot);
+    }
+    this.start(room, player);
+    return { room, player };
+  }
+
+  /** Alias matching specific spelling */
+  palyWithCompute(rawName, socketId, rawComputerCount = 3, rawAvatar) {
+    return this.playWithComputer(rawName, socketId, rawComputerCount, rawAvatar);
+  }
+
+  /** Add a computer player in the lobby. */
+  addBot(room, player) {
+    if (player) this._requireHost(room, player);
+    if (room.phase !== 'lobby') throw new GadhaError('BAD_PHASE', 'Computers can only be added in the lobby');
+    const limit = room.maxPlayers || this.config.maxPlayers;
+    if (room.players.length >= limit) throw new GadhaError('ROOM_FULL', 'Room is full');
+
+    const bot = this._newBotPlayer(room);
+    room.players.push(bot);
+    this._changed(room);
+    return { ok: true, bot };
+  }
+
+  /** Remove a computer player in the lobby. */
+  removeBot(room, player, botId) {
+    if (player) this._requireHost(room, player);
+    if (room.phase !== 'lobby') throw new GadhaError('BAD_PHASE', 'Computers can only be removed in the lobby');
+    const bot = room.players.find((p) => p.id === botId && p.isBot);
+    if (!bot) throw new GadhaError('PLAYER_NOT_FOUND', 'Computer player not found');
+    this._dropPlayer(room, bot);
+    this._changed(room);
+    return { ok: true };
   }
 
   joinRoom(rawCode, rawName, socketId, rawAvatar) {
@@ -228,6 +290,12 @@ class RoomManager {
     player.connected = false;
     player.socketId = null;
     this._cleanGuideState(room, player);
+    const humanRemains = room.players.some((p) => !p.isBot && !p.left && p.connected);
+    if (!humanRemains) {
+      this._clearTimers(room);
+      this.rooms.delete(room.code);
+      return;
+    }
     this._afterPlayerAbsent(room, player);
     this._changed(room);
   }
@@ -254,7 +322,7 @@ class RoomManager {
     this._requireHost(room, player);
     if (room.phase !== 'lobby') throw new GadhaError('BAD_PHASE', 'The game has already started');
 
-    for (const p of room.players.filter((x) => !x.connected)) this._dropPlayer(room, p);
+    for (const p of room.players.filter((x) => !x.connected && !x.isBot)) this._dropPlayer(room, p);
     if (room.players.length < MIN_PLAYERS) {
       throw new GadhaError('NOT_ENOUGH_PLAYERS', `At least ${MIN_PLAYERS} players are needed`);
     }
@@ -282,7 +350,7 @@ class RoomManager {
     room.guideMap = {};
     room.guideRequests = {};
     for (const p of [...room.players]) {
-      if (p.left || !p.connected) this._dropPlayer(room, p);
+      if (p.left || (!p.connected && !p.isBot)) this._dropPlayer(room, p);
     }
     if (room.players.length > 0) this._changed(room);
   }
@@ -442,7 +510,7 @@ class RoomManager {
     }
   }
 
-  /** If the player whose turn it is is absent, play a random legal card for them after a delay. */
+  /** If the player whose turn it is is a computer or absent, play for them after a delay. */
   _scheduleAutoplay(room) {
     clearTimeout(room.timers.autoplay);
     room.timers.autoplay = null;
@@ -450,7 +518,23 @@ class RoomManager {
     if (room.phase !== 'playing' || !game || game.phase !== 'playing') return;
     const seat = game.turnSeat;
     const player = room.players[seat];
-    if (!player || player.connected) return;
+    if (!player) return;
+
+    if (player.isBot) {
+      const delay = this.config.trickPauseMs === 0 ? 5 : (600 + crypto.randomInt(300));
+      room.timers.autoplay = setTimeout(() => {
+        room.timers.autoplay = null;
+        if (!this.rooms.has(room.code) || room.phase !== 'playing' || room.game !== game) return;
+        if (game.phase !== 'playing' || game.turnSeat !== seat) return;
+        const move = chooseBotMove(game, seat);
+        if (!move) return;
+        this._applyPlay(room, seat, move);
+      }, delay);
+      room.timers.autoplay.unref?.();
+      return;
+    }
+
+    if (player.connected) return;
 
     const delay = player.left
       ? (this.config.trickPauseMs === 0 ? 10 : LEFT_AUTOPLAY_MS)
@@ -459,9 +543,9 @@ class RoomManager {
       room.timers.autoplay = null;
       if (!this.rooms.has(room.code) || room.phase !== 'playing' || room.game !== game) return;
       if (game.phase !== 'playing' || game.turnSeat !== seat || room.players[seat].connected) return;
-      const legal = game.legalCards(seat);
-      if (legal.length === 0) return;
-      this._applyPlay(room, seat, legal[crypto.randomInt(legal.length)].id);
+      const move = chooseBotMove(game, seat);
+      if (!move) return;
+      this._applyPlay(room, seat, move);
     }, delay);
     room.timers.autoplay.unref?.();
   }
@@ -502,7 +586,7 @@ class RoomManager {
   _sweepIdleRooms() {
     const cutoff = Date.now() - this.config.roomIdleMs;
     for (const room of [...this.rooms.values()]) {
-      const anyoneHere = room.players.some((p) => p.connected);
+      const anyoneHere = room.players.some((p) => p.connected && !p.isBot);
       if (!anyoneHere && room.lastActivity < cutoff) {
         this._clearTimers(room);
         for (const p of room.players) clearTimeout(p.graceTimer);
@@ -530,6 +614,27 @@ class RoomManager {
       socketId,
       connected: true,
       left: false,
+      graceTimer: null,
+      voice: { active: false, muted: false },
+    };
+  }
+
+  _newBotPlayer(room) {
+    const takenNames = new Set(room.players.map((p) => p.name.toLowerCase()));
+    let name = BOT_NAMES.find((n) => !takenNames.has(n.toLowerCase()));
+    if (!name) {
+      name = `Bot ${crypto.randomInt(100, 999)}`;
+    }
+    const avatar = BOT_AVATARS[crypto.randomInt(BOT_AVATARS.length)];
+    return {
+      id: 'bot_' + newId(),
+      token: 'bot_tok_' + newToken(),
+      name,
+      avatar,
+      socketId: null,
+      connected: true,
+      left: false,
+      isBot: true,
       graceTimer: null,
       voice: { active: false, muted: false },
     };

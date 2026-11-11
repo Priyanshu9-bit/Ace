@@ -237,6 +237,7 @@ export default function Table({ view, t, speakingMap, gadhaBraying, onRequestGui
             )}
             <div className="seat-pod-name">
               <span className="avatar-badge">{p.avatar || '🫏'}</span>
+              {p.isBot && <span className="avatar-badge" style={{ fontSize: '13px' }} title={t('computerPlayer')}>🤖</span>}
               {isWinner && <span aria-hidden="true">👑</span>}
               {isPenalized && <span aria-hidden="true">📥</span>}
               <span>{p.seat === you.seat ? `${p.name} (${t('you')})` : p.name}</span>

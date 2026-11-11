@@ -304,6 +304,38 @@ export default function App() {
     return undefined;
   }
 
+  async function playWithComputer(computerCount = 3, chosenName, chosenAvatar) {
+    setErrorCode('');
+    const av = chosenAvatar || avatar;
+    const finalName = (chosenName || readStorage('gadha.name', '') || 'Player').trim();
+    const res = await run(() =>
+      request('room:playWithComputer', {
+        name: finalName,
+        computerCount: Number(computerCount) || 3,
+        avatar: av,
+      })
+    );
+    if (!res.ok) return setErrorCode(res.error.code);
+    saveSession({ code: res.code, token: res.token });
+    writeStorage('gadha.name', finalName);
+    writeStorage('gadha.avatar', av);
+    setAvatarState(av);
+    return undefined;
+  }
+
+  // Exact function alias as named by the user:
+  const palyWithCompute = playWithComputer;
+
+  async function addBot() {
+    const res = await run(() => request('room:addBot', {}));
+    if (!res.ok) fail(res);
+  }
+
+  async function removeBot(botId) {
+    const res = await run(() => request('room:removeBot', { botId }));
+    if (!res.ok) fail(res);
+  }
+
   async function setMaxPlayers(maxPlayers) {
     const res = await run(() => request('room:setMaxPlayers', { maxPlayers }));
     if (!res.ok) fail(res);
@@ -436,6 +468,13 @@ export default function App() {
   const inGame = view && (view.phase === 'playing' || view.phase === 'finished');
   const connecting = restoring || (conn === 'connecting' && !view);
 
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.playWithComputer = playWithComputer;
+      window.palyWithCompute = palyWithCompute;
+    }
+  }, [avatar]);
+
   let body;
   if (connecting) {
     body = (
@@ -454,6 +493,8 @@ export default function App() {
         onCreate={createRoom}
         onJoin={joinRoom}
         onJoinSpectator={joinSpectator}
+        onPlayWithComputer={playWithComputer}
+        onPalyWithCompute={palyWithCompute}
         initialName={readStorage('gadha.name', '')}
         initialAvatar={avatar}
         initialCode={initialCode}
@@ -497,6 +538,8 @@ export default function App() {
         onLeave={leaveRoom}
         onSetMaxPlayers={setMaxPlayers}
         onSetAvatar={setPlayerAvatar}
+        onAddBot={addBot}
+        onRemoveBot={removeBot}
         onOpenRules={() => setShowRules(true)}
         onOpenStats={() => setShowStats(true)}
         speakingMap={speakingMap}

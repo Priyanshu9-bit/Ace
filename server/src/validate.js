@@ -53,10 +53,19 @@ function cleanMaxPlayers(raw, minAllowed = 2, maxAllowed = 8) {
   return n;
 }
 
-const ALLOWED_AVATARS = new Set(['🫏', '👑', '😎', '👳', '🐯', '🦚', '🦁', '🎴', '⚡', '💎', '🔥', '🦉']);
+const ALLOWED_AVATARS = new Set(['🫏', '👑', '😎', '👳', '🐯', '🦚', '🦁', '🎴', '⚡', '💎', '🔥', '🦉', '🤖']);
 function cleanAvatar(raw) {
   if (typeof raw !== 'string') return '🫏';
   return ALLOWED_AVATARS.has(raw) ? raw : '🫏';
+}
+
+function cleanComputerCount(raw, minAllowed = 1, maxAllowed = 7) {
+  if (raw === undefined || raw === null || raw === '') return 3;
+  const n = typeof raw === 'number' ? raw : Number.parseInt(raw, 10);
+  if (!Number.isFinite(n) || n < minAllowed || n > maxAllowed) {
+    return 3;
+  }
+  return n;
 }
 
 module.exports = {
@@ -67,6 +76,7 @@ module.exports = {
   cleanToken,
   cleanMaxPlayers,
   cleanAvatar,
+  cleanComputerCount,
   ALLOWED_AVATARS,
   MAX_NAME_LENGTH,
 };

@@ -6,7 +6,7 @@ const RANDOM_NAMES = [
   'Sambit', 'Rakesh', 'Pooja', 'Rinky', 'Gudu'
 ];
 
-export const AVATARS = ['🫏', '👑', '😎', '👳', '🐯', '🦚', '🦁', '🎴', '⚡', '💎', '🔥', '🦉'];
+export const AVATARS = ['🫏', '👑', '😎', '👳', '🐯', '🦚', '🦁', '🎴', '⚡', '💎', '🔥', '🦉', '🤖'];
 
 export default function Home({
   t,
@@ -16,6 +16,8 @@ export default function Home({
   onCreate,
   onJoin,
   onJoinSpectator,
+  onPlayWithComputer,
+  onPalyWithCompute,
   initialName,
   initialAvatar,
   initialCode,
@@ -25,11 +27,12 @@ export default function Home({
   stats,
   isStandalone,
 }) {
-  const [mode, setMode] = useState(initialCode ? 'join' : 'create'); // 'create' | 'join'
+  const [mode, setMode] = useState(initialCode ? 'join' : 'create'); // 'create' | 'join' | 'computer'
   const [name, setName] = useState(initialName || '');
   const [avatar, setAvatar] = useState(initialAvatar || '🫏');
   const [code, setCode] = useState(initialCode || '');
   const [maxPlayers, setMaxPlayers] = useState(4);
+  const [computerCount, setComputerCount] = useState(3);
   const [asSpectator, setAsSpectator] = useState(false);
 
   function pickRandomName() {
@@ -40,7 +43,10 @@ export default function Home({
   function submit(e) {
     e.preventDefault();
     if (busy) return;
-    if (mode === 'create') {
+    if (mode === 'computer') {
+      const playFn = onPlayWithComputer || onPalyWithCompute;
+      if (playFn) playFn(computerCount, name, avatar);
+    } else if (mode === 'create') {
       onCreate(name, maxPlayers, avatar);
     } else if (asSpectator) {
       onJoinSpectator(code, name, avatar);
@@ -109,6 +115,15 @@ export default function Home({
         <button
           type="button"
           role="tab"
+          aria-selected={mode === 'computer'}
+          className={`tab-btn ${mode === 'computer' ? 'active' : ''}`}
+          onClick={() => setMode('computer')}
+        >
+          🤖 {t('playWithComputer')}
+        </button>
+        <button
+          type="button"
+          role="tab"
           aria-selected={mode === 'create'}
           className={`tab-btn ${mode === 'create' ? 'active' : ''}`}
           onClick={() => setMode('create')}
@@ -167,6 +182,32 @@ export default function Home({
             ))}
           </div>
         </div>
+
+        {mode === 'computer' && (
+          <div className="field">
+            <div className="field-header">
+              <span>{t('selectComputers')}</span>
+              <span className="field-badge">{t('computersCount', { n: computerCount })}</span>
+            </div>
+            <div className="limit-pill-group" role="group" aria-label={t('selectComputers')}>
+              {[
+                { count: 2, label: t('twoComputers') },
+                { count: 3, label: t('threeComputers') },
+                { count: 1, label: t('oneComputer') },
+              ].map((opt) => (
+                <button
+                  key={opt.count}
+                  type="button"
+                  className={`limit-pill ${computerCount === opt.count ? 'active' : ''}`}
+                  onClick={() => setComputerCount(opt.count)}
+                  style={{ padding: '8px 12px', fontSize: '13px' }}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {mode === 'create' && (
           <div className="field">
@@ -234,7 +275,15 @@ export default function Home({
         )}
 
         <button type="submit" className="btn btn-gold btn-big" disabled={busy}>
-          {busy ? t('working') : mode === 'create' ? t('create') : asSpectator ? t('watchLive') : t('join')}
+          {busy
+            ? t('working')
+            : mode === 'computer'
+            ? `🤖 ${t('playWithComputer')}`
+            : mode === 'create'
+            ? t('create')
+            : asSpectator
+            ? t('watchLive')
+            : t('join')}
         </button>
       </form>
 

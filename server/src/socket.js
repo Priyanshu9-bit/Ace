@@ -110,6 +110,28 @@ function registerSocketHandlers(io, manager, config) {
       return { code: room.code, playerId: player.id, token: player.token };
     });
 
+    function handlePlayWithComputer({ name, computerCount, avatar }) {
+      if (socket.data.code) throw new GadhaError('ALREADY_IN_ROOM', 'Leave your current room first');
+      const { room, player } = manager.playWithComputer(name, socket.id, computerCount, avatar);
+      bind(room, player);
+      return { code: room.code, playerId: player.id, token: player.token };
+    }
+
+    on('room:playWithComputer', handlePlayWithComputer);
+    on('room:palyWithCompute', handlePlayWithComputer);
+
+    on('room:addBot', () => {
+      const { room, player, isSpectator } = context();
+      if (isSpectator) throw new GadhaError('NOT_HOST', 'Spectators cannot configure computers');
+      return manager.addBot(room, player);
+    });
+
+    on('room:removeBot', ({ botId }) => {
+      const { room, player, isSpectator } = context();
+      if (isSpectator) throw new GadhaError('NOT_HOST', 'Spectators cannot configure computers');
+      return manager.removeBot(room, player, botId);
+    });
+
     on('room:setMaxPlayers', ({ maxPlayers }) => {
       const { room, player, isSpectator } = context();
       if (isSpectator) throw new GadhaError('NOT_HOST', 'Spectators cannot configure rooms');

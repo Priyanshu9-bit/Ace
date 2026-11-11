@@ -9,6 +9,8 @@ export default function Lobby({
   onLeave,
   onSetMaxPlayers,
   onSetAvatar,
+  onAddBot,
+  onRemoveBot,
   onOpenRules,
   onOpenStats,
   speakingMap,
@@ -199,7 +201,19 @@ export default function Lobby({
         <h3 className="section-title" style={{ margin: 0 }}>
           {t('players')} ({players.length}/{maxPlayers})
         </h3>
-        <div className="row" style={{ gap: '6px' }}>
+        <div className="row" style={{ gap: '6px', alignItems: 'center' }}>
+          {you.isHost && players.length < maxPlayers && onAddBot && (
+            <button
+              type="button"
+              className="btn btn-small"
+              style={{ background: 'rgba(245, 195, 66, 0.2)', borderColor: 'var(--gold)', color: '#fff' }}
+              onClick={onAddBot}
+              disabled={busy}
+              title={t('addComputer')}
+            >
+              🤖 + {t('addComputer')}
+            </button>
+          )}
           {onOpenStats && (
             <button type="button" className="btn btn-ghost btn-small" onClick={onOpenStats} title={t('viewStats')}>
               📊 {t('stats')}
@@ -244,9 +258,22 @@ export default function Lobby({
                     {isVoiceMuted ? '🔇' : '🎙️'}
                   </span>
                 )}
+                {p.isBot && <span className="badge badge-bot">🤖 {t('botBadge')}</span>}
                 {p.isHost && <span className="badge badge-host">{t('host')}</span>}
                 {isYou && <span className="badge badge-you">{t('you')}</span>}
-                {!p.connected && <span className="badge badge-offline">{t('offline')}</span>}
+                {!p.connected && !p.isBot && <span className="badge badge-offline">{t('offline')}</span>}
+                {you.isHost && p.isBot && onRemoveBot && (
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-tiny"
+                    onClick={() => onRemoveBot(p.id)}
+                    disabled={busy}
+                    title={t('removeComputer')}
+                    style={{ padding: '1px 6px', fontSize: '11px', color: '#ff7777', borderColor: 'rgba(255,119,119,0.4)', marginLeft: '4px' }}
+                  >
+                    ✕
+                  </button>
+                )}
               </div>
             </li>
           );
