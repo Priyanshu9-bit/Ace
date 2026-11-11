@@ -206,6 +206,9 @@ export default function Home({
                 </button>
               ))}
             </div>
+            <p className="muted" style={{ fontSize: '11px', margin: '4px 0 0', color: 'var(--gold)' }}>
+              ⚡ Pro AI: Card counting, void memory &amp; tactical cuts
+            </p>
           </div>
         )}
 

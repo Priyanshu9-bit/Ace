@@ -50,6 +50,7 @@ class GadhaGame {
     this.trickSeq = 0;
     this.result = null; // { gadhaSeat, reason, finishOrder }
     this.knownVoids = Array.from({ length: playerCount }, () => new Set());
+    this.knownPickedUpCards = Array.from({ length: playerCount }, () => new Set());
 
     const starter = this.hands.findIndex((h) => h.some((c) => c.id === 'AS'));
     this._startRound(starter);
@@ -150,6 +151,7 @@ class GadhaGame {
     const playedSet = new Set(cards);
     this.hands[seat] = this.hands[seat].filter((c) => !playedSet.has(c));
     for (const card of cards) {
+      this.knownPickedUpCards[seat].delete(card.id);
       this.trick.push({ seat, card });
     }
     this.awaitingFirstCard = false; // A♠ (the only legal opener) has now been played
@@ -245,9 +247,10 @@ class GadhaGame {
       this.hands[penaltySeat].push(...this.trick.map((p) => p.card));
       this.hands[penaltySeat] = sortHand(this.hands[penaltySeat]);
       this.lastTrickWinner = penaltySeat;
-      // Penalty recipient picked up these cards, so they might have cards in these suits again
+      // Penalty recipient picked up these cards: record them and clear voids
       for (const p of this.trick) {
         this.knownVoids[penaltySeat].delete(p.card.suit);
+        this.knownPickedUpCards[penaltySeat].add(p.card.id);
       }
     } else {
       this.discarded.push(...this.trick.map((p) => p.card));
