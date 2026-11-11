@@ -49,6 +49,7 @@ class GadhaGame {
     this.lastTrickWinner = null;
     this.trickSeq = 0;
     this.result = null; // { gadhaSeat, reason, finishOrder }
+    this.knownVoids = Array.from({ length: playerCount }, () => new Set());
 
     const starter = this.hands.findIndex((h) => h.some((c) => c.id === 'AS'));
     this._startRound(starter);
@@ -155,6 +156,9 @@ class GadhaGame {
 
     // Check if this play was a CUT (player played off-suit)
     const isCut = cards[0].suit !== this.leadSuit;
+    if (isCut) {
+      this.knownVoids[seat].add(this.leadSuit);
+    }
 
     // A player who played their last card (0 cards left) is safe and CANNOT be cut
     let penaltySeat = null;
@@ -241,6 +245,10 @@ class GadhaGame {
       this.hands[penaltySeat].push(...this.trick.map((p) => p.card));
       this.hands[penaltySeat] = sortHand(this.hands[penaltySeat]);
       this.lastTrickWinner = penaltySeat;
+      // Penalty recipient picked up these cards, so they might have cards in these suits again
+      for (const p of this.trick) {
+        this.knownVoids[penaltySeat].delete(p.card.suit);
+      }
     } else {
       this.discarded.push(...this.trick.map((p) => p.card));
       this.lastTrickWinner = winnerSeat;
